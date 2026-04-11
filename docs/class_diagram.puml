@@ -43,8 +43,6 @@ class Garden {
 note right of Garden : width = height = 20
 
 class Cell {
-    - x : int
-    - y : int
     - plant : Plant
     + isEmpty() : bool
     + setPlant(plant : Plant) : void
@@ -61,12 +59,16 @@ abstract class Plant {
     # buyPrice : float
     # sellPrice : float
     # mutations : List~Mutation~
+    # regrowsAfterHarvest : bool
+    # regrowStage : int
+    # consumedOnHarvest : bool
     + grow(ticks : int) : void
     + harvest() : HarvestedItem
     + isFullyGrown() : bool
     + getTimeToGrowth() : int
     + applyWeatherEffect(w : WeatherType) : void
     + addMutation(m : Mutation) : void
+    + getMutations() : List~MutationType~
     - calcFinalPrice() : float
 }
 note right of Plant
@@ -76,13 +78,23 @@ note right of Plant
   multipliers into final sell price
 end note
 
+enum MutationType {
+    WET
+    SHOCKED
+    FROZEN
+    CELESTIAL
+}
+
 class Mutation {
-    - name : String
+    - type : MutationType
     - valueMultiplier : float
     - triggerWeather : WeatherType
     + apply(plant : Plant) : void
     + getMultiplier() : float
+    + getType() : MutationType
 }
+
+Mutation --> MutationType : has
 note right of Mutation
   Wet (Rain)        ×2
   Shocked (Thunder) ×100
@@ -120,10 +132,11 @@ class Player {
 }
 
 class Inventory {
-    - items : Map~Item, Integer~
+    - items : Map~String, Integer~
     - maxSlots : int
     + addItem(item : Item, qty : int) : bool
     + removeItem(item : Item, qty : int) : bool
+    + getQuantity(itemName : String) : int
     + isFull() : bool
     + getItems() : List~Item~
 }
@@ -142,17 +155,12 @@ class Seed {
 }
 
 class HarvestedItem {
-    - quality : Quality
+    - mutations : List~MutationType~
     - finalSellPrice : float
     + getPrice() : float
+    + getMutations() : String
 }
 
-enum Quality {
-    POOR
-    NORMAL
-    GOOD
-    EXCELLENT
-}
 
 abstract class Tool {
     # durability : int
@@ -238,7 +246,7 @@ Item <|-- Seed
 Item <|-- HarvestedItem
 Item <|-- Tool
 
-HarvestedItem --> Quality : has
+HarvestedItem --> MutationType : has
 
 Plant ..> HarvestedItem : produces
 Plant ..> WeatherType : affected by
