@@ -1,5 +1,8 @@
 #include "Plant.h"
 
+#include "HarvestedItem.h"
+
+
 Plant::Plant(int id,
     const std::string name,
     int currentStage,
@@ -58,7 +61,7 @@ HarvestedItem Plant::harvest()
 
     if (regrowsAfterHarvest_) {
         currentStage_ = regrowStage_;
-        ticksElapsed_ = regrowStage_ * ticksPerStage_;
+        ticksElapsed_ = regrowStage_ * currentTicksPerStage_;
         mutations_.clear();
         consumedOnHarvest_ = false;
     } else {
@@ -141,7 +144,7 @@ std::vector<MutationType> Plant::getMutations() const
     return mt;
 }
 
-double Plant::clacPrice()
+double Plant::calcPrice()
 {
     double finalPrice = sellPrice_;
     for (const auto& m : mutations_)

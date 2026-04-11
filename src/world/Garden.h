@@ -1,5 +1,9 @@
+#pragma once
+
+#include <memory>
 #include <vector>
-#include "cell.h"
+
+#include "Cell.h"
 
 class Garden 
 {
@@ -11,6 +15,9 @@ class Garden
     public:
         //constructor
         Garden(int width, int height);
+
+        int getWidth() const;
+        int getHeight() const;
 
         // Read and Write
         Cell& getCell(int x, int y);

@@ -142,11 +142,14 @@ class Inventory {
 }
 
 abstract class Item {
+    # id : int
     # name : String
     # description : String
     # basePrice : float
     + getPrice() : float
     + getName() : String
+    + getDescr() : String
+    + id() : int
 }
 
 class Seed {

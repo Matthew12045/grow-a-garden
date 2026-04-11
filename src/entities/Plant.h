@@ -1,11 +1,14 @@
+#pragma once
+
+#include <cmath>
 #include <string>
 #include <vector>
 #include "Mutation.h"
-#include "HarvestedItem.h"
-#include "../world/Cell.h"
 #include "../world/WeatherSystem.h"
 #include <utility>
 #include <algorithm>
+
+class HarvestedItem;
 
 class Plant 
 {

@@ -1,4 +1,4 @@
-#include "cell.h"
+#include "Cell.h"
 
 bool Cell::isEmpty() const 
 {
