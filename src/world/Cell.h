@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "Plant.h"
+#include "../entities/Plant.h"
 
 class Cell 
 {

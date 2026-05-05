@@ -37,6 +37,8 @@ class Garden {
     - width : int
     - height : int
     - cells : Cell[][]
+    + getWidth() : int
+    + getHeight() : int
     + getCell(x : int, y : int) : Cell
     + plantCrop(x : int, y : int, plant : Plant) : bool
 }
@@ -46,6 +48,7 @@ class Cell {
     - plant : Plant
     + isEmpty() : bool
     + setPlant(plant : Plant) : void
+    + getPlant() : Plant
     + clearCrop() : void
 }
 
@@ -54,7 +57,8 @@ abstract class Plant {
     # name : String
     # currentStage : int
     # maxStages : int
-    # ticksPerStage : int
+    # baseTicksPerStage : int
+    # currentTicksPerStage : int
     # ticksElapsed : int
     # buyPrice : float
     # sellPrice : float
@@ -62,6 +66,7 @@ abstract class Plant {
     # regrowsAfterHarvest : bool
     # regrowStage : int
     # consumedOnHarvest : bool
+    - baseTicksPerStage
     + grow(ticks : int) : void
     + harvest() : HarvestedItem
     + isFullyGrown() : bool
@@ -78,6 +83,15 @@ note right of Plant
   multipliers into final sell price
 end note
 
+class SpecialPlant {
+    - requiredToolName : String
+    - HarvestBonus : float
+    + canHarvest(tool : Tool) : bool
+    + harvest(tool : Tool) : HarvestedItem
+}
+
+Plant <|-- SpecialPlant
+
 enum MutationType {
     WET
     SHOCKED
@@ -91,6 +105,7 @@ class Mutation {
     - triggerWeather : WeatherType
     + apply(plant : Plant) : void
     + getMultiplier() : float
+    + getTrigger() : WeatherType
     + getType() : MutationType
 }
 
@@ -146,10 +161,9 @@ abstract class Item {
     # name : String
     # description : String
     # basePrice : float
-    + getPrice() : float
+    + getBasePrice() : float
     + getName() : String
-    + getDescr() : String
-    + id() : int
+    + getDescription : String
 }
 
 class Seed {
