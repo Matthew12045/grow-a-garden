@@ -27,3 +27,11 @@ CLAUDE.md.backup
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code / agents
+.claude/
+.agents/
+skills-lock.json
+
+# Project archives
+progress.zip
