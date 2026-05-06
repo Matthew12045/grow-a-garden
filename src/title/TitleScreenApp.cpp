@@ -13,7 +13,7 @@ TitleScreenApp::TitleScreenApp() {
     loadAssets();
     
     // Create title screen
-    titleScreen = std::make_unique<TitleScreen>("assets/textures/title_background.png");
+    titleScreen = std::make_unique<TitleScreen>("assets/textures/background.jpg");
     titleScreen->setFont(font);
 
     audioManager_.updateBGM(WeatherType::SUMMER);
@@ -64,6 +64,11 @@ void TitleScreenApp::handleEvents() {
             window->close();
             return;
         }
+
+        if (const auto* resized = ev.getIf<sf::Event::Resized>()) {
+            window->setView(window->getDefaultView());
+            (void)resized;
+        }
         // Other events can be handled here if needed
     }
 
@@ -88,10 +93,7 @@ int TitleScreenApp::run() {
         
         float deltaTime = clock.restart().asSeconds();
         
-        sf::Vector2f mousePos(
-            static_cast<float>(sf::Mouse::getPosition(*window).x),
-            static_cast<float>(sf::Mouse::getPosition(*window).y)
-        );
+        sf::Vector2f mousePos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
         
         bool mousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         

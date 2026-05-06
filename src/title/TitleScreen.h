@@ -10,6 +10,9 @@ class TitleScreen {
 public:
     enum class State {
         FadingIn,
+        IntroHoldLogo,
+        IntroDimLogo,
+        IntroLoading,
         Active,
         Transitioning,
         Credits,
@@ -37,6 +40,13 @@ private:
     sf::Texture backgroundTexture;
     sf::Sprite* backgroundSprite;
     
+    sf::Texture introTexture;
+    sf::Sprite* introSprite;
+    
+    sf::Texture startTexture;
+    sf::Texture resetTexture;
+    sf::Texture leaveTexture;
+    
     std::unique_ptr<Button> startButton;
     std::unique_ptr<Button> creditsButton;
     std::unique_ptr<Button> exitButton;
@@ -50,6 +60,15 @@ private:
     float fadeAlpha;
     float maxFade;
     float fadeSpeed;
+    float introTimer;
+    float loadingTimer;
+    float loadingDuration;
+    
+    // Intro timing constants
+    static constexpr float kIntroFadeDuration = 2.0f;
+    static constexpr float kIntroHoldDuration = 2.0f;
+    static constexpr float kIntroDimDuration = 1.5f;
+    static constexpr float kLoadingDuration = 3.0f;
     
     bool shouldStart;
     bool shouldExitGame;

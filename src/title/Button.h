@@ -14,9 +14,10 @@ public:
     };
 
     Button(float x, float y, float width, float height, const std::string& text);
-    ~Button() = default;
+    ~Button();
 
     void setFont(const sf::Font& font);
+    void setTexture(const sf::Texture& texture);
     void update(const sf::Vector2f& mousePos);
     void update(const sf::Vector2f& mousePos, float deltaTime);
     void draw(sf::RenderWindow& window);
@@ -34,6 +35,8 @@ public:
 private:
     sf::ConvexShape buttonShape;
     sf::Text* buttonText;
+    sf::Sprite* buttonSprite;
+    const sf::Texture* buttonTexture;
     sf::FloatRect bounds;
     State state;
         std::string buttonTextString;
