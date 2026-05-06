@@ -38,6 +38,7 @@ class Plant
               bool regrowsAfterHarvest,
               int regrowStage);
     public:
+        virtual ~Plant() = default;
         void grow(std::size_t ticks);
         HarvestedItem harvest();
         bool isFullyGrown() const;

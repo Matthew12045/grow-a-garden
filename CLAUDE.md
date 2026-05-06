@@ -36,6 +36,15 @@ cp compile_commands.json ../
 .\GrowAGarden.exe
 ```
 
+### Testing
+```bash
+# Build tests
+cmake --build build
+
+# Run tests
+./build/tests/GrowAGardenTests
+```
+
 Always run from the project root so asset paths resolve correctly.
 
 ---
