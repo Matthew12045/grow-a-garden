@@ -1,0 +1,36 @@
+#pragma once
+
+#include "../entities/Plant.h"
+#include "../systems/Inventory.h"
+#include "../systems/Shop.h"
+#include "../world/WeatherSystem.h"
+
+#include <string>
+
+enum class Language {
+	THAI,
+	ENGLISH,
+	CHINESE
+};
+
+class UIManager {
+private:
+	Language language_;
+
+	std::string translate(const std::string& thai,
+						  const std::string& english,
+						  const std::string& chinese) const;
+	std::string weatherToString(WeatherType weather) const;
+	std::string mutationToString(MutationType mutation) const;
+
+public:
+	UIManager();
+
+	void showInventory(const Inventory& inv) const;
+	void showShop(const Shop& shop) const;
+	void showWeather(WeatherType weather) const;
+	void showCropTimer(const Plant& plant) const;
+	void showMutations(const Plant& plant) const;
+	void showEventLog() const;
+	void setLanguage(Language lang);
+};

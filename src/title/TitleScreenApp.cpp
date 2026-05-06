@@ -15,6 +15,8 @@ TitleScreenApp::TitleScreenApp() {
     // Create title screen
     titleScreen = std::make_unique<TitleScreen>("assets/textures/title_background.png");
     titleScreen->setFont(font);
+
+    audioManager_.updateBGM(WeatherType::SUMMER);
 }
 
 void TitleScreenApp::loadAssets() {
@@ -111,6 +113,8 @@ int TitleScreenApp::run() {
         titleScreen->draw(*window);
         window->display();
     }
+
+    audioManager_.stop();
     
     return 0;
 }

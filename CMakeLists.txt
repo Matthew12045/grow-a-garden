@@ -16,7 +16,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # ── Find SFML 3 ─────────────────────────────────────────────────────────────
-find_package(SFML 3 COMPONENTS Graphics Window System REQUIRED)
+find_package(SFML 3 COMPONENTS Graphics Window System Audio REQUIRED)
 
 # ── Include directories ──────────────────────────────────────────────────────
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -51,7 +51,7 @@ add_executable(GrowAGarden
     ${GAME_SOURCES}
 )
 target_link_libraries(GrowAGarden PRIVATE
-    SFML::Graphics SFML::Window SFML::System
+    SFML::Graphics SFML::Window SFML::System SFML::Audio
 )
 
 # ── Copy assets ──────────────────────────────────────────────────────────────
