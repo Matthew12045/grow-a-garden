@@ -4,14 +4,17 @@
 #include <iostream>
 
 TitleScreen::TitleScreen(const std::string& backgroundPath)
-    : currentState(State::FadingIn),
-      fadeAlpha(0.f),
-      maxFade(255.f),
-      fadeSpeed(200.f),
-      shouldStart(false),
-      shouldExitGame(false),
-      exitButtonEvading(false),
-      evasionTimer(0.f) {
+        : currentState(State::FadingIn),
+            fadeAlpha(0.f),
+            maxFade(255.f),
+            fadeSpeed(200.f),
+            introTimer(0.f),
+            loadingTimer(0.f),
+            loadingDuration(kLoadingDuration),
+            shouldStart(false),
+            shouldExitGame(false),
+            exitButtonEvading(false),
+            evasionTimer(0.f) {
     
     // Load background: try requested path, then common alternatives
     bool loaded = backgroundTexture.loadFromFile(backgroundPath);
@@ -38,6 +41,33 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
     // Scale background to fit window
     auto textureSize = backgroundTexture.getSize();
     backgroundSprite->setScale(sf::Vector2f(1920.f / textureSize.x, 1080.f / textureSize.y));
+    
+    // Load intro image (logo)
+    bool logoLoaded = introTexture.loadFromFile("assets/textures/LOGO.png");
+    if (!logoLoaded) {
+        std::cerr << "Warning: Could not load LOGO.png, creating fallback logo" << std::endl;
+        // Create a simple fallback logo texture
+        sf::Image fallbackLogo;
+        fallbackLogo.resize(sf::Vector2u(400, 200), sf::Color(100, 150, 200));
+        // Add some text-like pattern
+        for (unsigned int x = 50; x < 350; x += 10) {
+            for (unsigned int y = 50; y < 150; y += 10) {
+                fallbackLogo.setPixel(sf::Vector2u(x, y), sf::Color::White);
+            }
+        }
+        logoLoaded = introTexture.loadFromImage(fallbackLogo);
+    }
+    introSprite = new sf::Sprite(introTexture);
+    // Center and scale the logo
+    auto logoSize = introTexture.getSize();
+    if (logoSize.x > 0 && logoSize.y > 0) {
+        float scale = std::min(1920.f / logoSize.x, 1080.f / logoSize.y) * 0.8f; // 80% of screen
+        introSprite->setScale(sf::Vector2f(scale, scale));
+        introSprite->setPosition(
+            sf::Vector2f((1920.f - logoSize.x * scale) / 2.f,
+                         (1080.f - logoSize.y * scale) / 2.f)
+        );
+    }
     
     // Create buttons (order: START, RESET, CREDIT, LEAVE)
     // Compute vertical positions so spacing is equal
@@ -90,8 +120,54 @@ void TitleScreen::setFont(const sf::Font& font) {
 void TitleScreen::update(float deltaTime, const sf::Vector2f& mousePos, bool mousePressed) {
     switch (currentState) {
         case State::FadingIn:
+            // Fade in to reveal the logo
             fadeAlpha = std::min(maxFade, fadeAlpha + fadeSpeed * deltaTime);
-            if (fadeAlpha >= maxFade) {
+            introTimer += deltaTime;
+            if (fadeAlpha >= maxFade && introTimer >= kIntroFadeDuration) {
+                introTimer = 0.f;
+                currentState = State::IntroHoldLogo;
+            }
+            break;
+
+        case State::IntroHoldLogo:
+            // Hold the logo for a moment
+            introTimer += deltaTime;
+            if (introTimer >= kIntroHoldDuration) {
+                introTimer = 0.f;
+                currentState = State::IntroDimLogo;
+            }
+            break;
+
+        case State::IntroDimLogo: {
+            // Dim the logo and fade to black
+            introTimer += deltaTime;
+            float dimProgress = introTimer / kIntroDimDuration;
+            fadeAlpha = maxFade * (1.f - dimProgress); // Fade from white to black
+            if (introTimer >= kIntroDimDuration) {
+                fadeAlpha = 0.f;
+                introTimer = 0.f;
+                currentState = State::IntroRevealTitle;
+            }
+            break;
+        }
+
+        case State::IntroRevealTitle: {
+            // Reveal the title screen (fade from black)
+            introTimer += deltaTime;
+            float revealProgress = introTimer / kIntroRevealDuration;
+            fadeAlpha = maxFade * (1.f - revealProgress);
+            if (introTimer >= kIntroRevealDuration) {
+                fadeAlpha = maxFade;
+                introTimer = 0.f;
+                loadingTimer = 0.f;
+                currentState = State::IntroLoading;
+            }
+            break;
+        }
+
+        case State::IntroLoading:
+            loadingTimer += deltaTime;
+            if (loadingTimer >= loadingDuration) {
                 currentState = State::Active;
             }
             break;
@@ -244,17 +320,87 @@ void TitleScreen::updateExitButtonEvasion(const sf::Vector2f& mousePos, float de
 }
 
 void TitleScreen::draw(sf::RenderWindow& window) {
-    // Draw background
+    sf::Vector2u sz = window.getSize();
+
+    // Handle intro states with logo and transitions
+    if (currentState == State::FadingIn || currentState == State::IntroHoldLogo || 
+        currentState == State::IntroDimLogo) {
+        // Draw black background
+        sf::RectangleShape black(sf::Vector2f(static_cast<float>(sz.x), static_cast<float>(sz.y)));
+        black.setFillColor(sf::Color::Black);
+        window.draw(black);
+
+        // Draw logo with fade
+        if (introSprite) {
+            // Calculate alpha for logo (inverted from fadeAlpha)
+            // When fadeAlpha goes from 0 to 255, logo goes from 0 to 255
+            // When fadeAlpha goes from 255 to 0 (dimming), logo goes from 255 to 0
+            float alpha = std::min(255.f, fadeAlpha);
+            introSprite->setColor(sf::Color(255, 255, 255, static_cast<std::uint8_t>(alpha)));
+            window.draw(*introSprite);
+        }
+        return;
+    }
+
+    if (currentState == State::IntroRevealTitle) {
+        // Draw background
+        if (backgroundSprite) window.draw(*backgroundSprite);
+        
+        // Draw dark overlay that fades away to reveal title
+        sf::RectangleShape dimOverlay(sf::Vector2f(static_cast<float>(sz.x), static_cast<float>(sz.y)));
+        float overlayAlpha = std::min(255.f, fadeAlpha);
+        dimOverlay.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(overlayAlpha)));
+        window.draw(dimOverlay);
+        return;
+    }
+
+    if (currentState == State::IntroLoading) {
+        // Draw black background
+        sf::RectangleShape black(sf::Vector2f(static_cast<float>(sz.x), static_cast<float>(sz.y)));
+        black.setFillColor(sf::Color::Black);
+        window.draw(black);
+
+        // Loading text
+        if (confirmText) {
+            const sf::Font& ft = confirmText->getFont();
+            unsigned int size = 28;
+            sf::Text loadingText(ft, "Loading...", size);
+            loadingText.setFillColor(sf::Color::White);
+            auto lb = loadingText.getLocalBounds();
+            float lx = static_cast<float>(sz.x) / 2.f - lb.size.x / 2.f;
+            float ly = static_cast<float>(sz.y) / 2.f - 48.f;
+            loadingText.setPosition(sf::Vector2f(lx, ly));
+            window.draw(loadingText);
+        }
+
+        // Progress bar (white)
+        float progress = std::min(1.f, loadingTimer / loadingDuration);
+        float barW = 600.f;
+        float barH = 24.f;
+        float bx = static_cast<float>(sz.x) / 2.f - barW / 2.f;
+        float by = static_cast<float>(sz.y) / 2.f - barH / 2.f;
+
+        // Filled portion
+        sf::RectangleShape fill(sf::Vector2f(barW * progress, barH));
+        fill.setPosition(sf::Vector2f(bx, by));
+        fill.setFillColor(sf::Color::White);
+        window.draw(fill);
+
+        // Outline
+        sf::RectangleShape outline(sf::Vector2f(barW, barH));
+        outline.setPosition(sf::Vector2f(bx, by));
+        outline.setFillColor(sf::Color::Transparent);
+        outline.setOutlineColor(sf::Color::White);
+        outline.setOutlineThickness(2.f);
+        window.draw(outline);
+
+        return;
+    }
+
+    // Draw normal title screen with buttons (Active, Transitioning, etc)
     if (backgroundSprite) window.draw(*backgroundSprite);
     
-    // Draw dimming overlay based on fade state
-    sf::RectangleShape dimOverlay(sf::Vector2f(window.getSize().x, window.getSize().y));
-    float dimAmount = 1.f - (fadeAlpha / maxFade);
-    dimOverlay.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(dimAmount * 150.f)));
-    window.draw(dimOverlay);
-    
     switch (currentState) {
-        case State::FadingIn:
         case State::Active:
         case State::Transitioning:
             startButton->draw(window);
@@ -264,9 +410,10 @@ void TitleScreen::draw(sf::RenderWindow& window) {
             break;
             
         case State::Credits:
-            // Keep title background visible, draw credits on top with dimming
+            // Keep title background visible, draw credits on top
             creditsScreen->draw(window);
             break;
+            
         case State::ConfirmStart:
         case State::ConfirmReset:
             // dim and draw modal
@@ -293,12 +440,23 @@ void TitleScreen::draw(sf::RenderWindow& window) {
                 confirmNoButton->draw(window);
             }
             break;
+        
+        // Intro states handled above, shouldn't reach here
+        case State::FadingIn:
+        case State::IntroHoldLogo:
+        case State::IntroDimLogo:
+        case State::IntroRevealTitle:
+        case State::IntroLoading:
+        default:
+            break;
     }
 }
 
 void TitleScreen::reset() {
     currentState = State::FadingIn;
     fadeAlpha = 0.f;
+    introTimer = 0.f;
+    loadingTimer = 0.f;
     shouldStart = false;
     shouldExitGame = false;
     exitButtonEvading = false;
