@@ -27,7 +27,6 @@ class Plant
         bool regrowsAfterHarvest_;
         bool consumedOnHarvest_;
         int regrowStage_;
-    protected:
         Plant(int id,
               std::string name,
               int currentStage,
@@ -46,4 +45,5 @@ class Plant
         void applyWeatherEffect(WeatherType weatherType);
         void addMutation(Mutation newMutation);
         std::vector<MutationType> getMutations() const;
+        const int getStage() const;
 };

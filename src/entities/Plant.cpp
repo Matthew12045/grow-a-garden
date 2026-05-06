@@ -154,3 +154,8 @@ double Plant::calcPrice()
     }
     return finalPrice;
 }
+
+const int Plant::getStage() const
+{
+    return currentStage_;
+}
