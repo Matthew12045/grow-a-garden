@@ -46,4 +46,6 @@ class Plant
         void addMutation(Mutation newMutation);
         std::vector<MutationType> getMutations() const;
         const int getStage() const;
+        const std::string& getName() const { return name_; }
+        int getMaxStages() const { return maxStages_; }
 };

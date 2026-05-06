@@ -35,6 +35,7 @@ file(GLOB_RECURSE GAME_SOURCES
     "${CMAKE_SOURCE_DIR}/src/systems/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/core/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/ui/*.cpp"
+    "${CMAKE_SOURCE_DIR}/src/game/*.cpp"
 )
 list(FILTER GAME_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
 

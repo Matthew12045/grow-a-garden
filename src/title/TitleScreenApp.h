@@ -21,6 +21,7 @@ private:
     
     void loadAssets();
     void handleEvents();
+    void runGame();       // ← launches the main gameplay loop
 };
 
 #endif

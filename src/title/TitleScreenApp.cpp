@@ -1,4 +1,5 @@
 #include "TitleScreenApp.h"
+#include "../game/GameScreen.h"
 #include <iostream>
 
 TitleScreenApp::TitleScreenApp() {
@@ -102,7 +103,7 @@ int TitleScreenApp::run() {
         // Check title screen state
         if (titleScreen->shouldStartGame()) {
             std::cout << "Game started!" << std::endl;
-            // TODO: Transition to main game loop
+            runGame();
             break;
         }
         
@@ -119,4 +120,10 @@ int TitleScreenApp::run() {
     audioManager_.stop();
     
     return 0;
+}
+
+void TitleScreenApp::runGame() {
+    audioManager_.stop();
+    GameScreen gs(*window, font);
+    gs.run();
 }

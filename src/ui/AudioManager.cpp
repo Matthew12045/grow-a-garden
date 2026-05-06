@@ -13,7 +13,7 @@ std::string AudioManager::weatherToTrackPath(WeatherType weatherType) {
 		case WeatherType::SUMMER:
 			return "assets/audio/bgm/06_main_music_00.flac";
 		case WeatherType::RAIN:
-			return "assets/audio/bgm/09_main_music_03.flac";
+			return "assets/audio/bgm/10_main_music_04.flac";
 		case WeatherType::FROST:
 			return "assets/audio/bgm/12_main_music_06.flac";
 		case WeatherType::THUNDER_STORM:
