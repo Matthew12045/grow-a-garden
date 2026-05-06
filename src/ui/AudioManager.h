@@ -15,9 +15,14 @@ private:
 	std::string currentTrackPath_;
 
 	static std::vector<std::string> buildTrackCandidates(WeatherType weatherType);
-	static std::string weatherToTrackPath(WeatherType weatherType);
 
 public:
+	// non-copyable: sf::Music is non-copyable
+	AudioManager(const AudioManager&) = delete;
+	AudioManager& operator=(const AudioManager&) = delete;
+
+	// expose for tests
+	static std::string weatherToTrackPath(WeatherType weatherType);
 	AudioManager();
 
 	void updateBGM(WeatherType currentWeather);

@@ -17,9 +17,10 @@ class UIManager {
 private:
 	Language language_;
 
+public:
 	std::string translate(const std::string& thai,
-						  const std::string& english,
-						  const std::string& chinese) const;
+					  const std::string& english,
+					  const std::string& chinese) const;
 	std::string weatherToString(WeatherType weather) const;
 	std::string mutationToString(MutationType mutation) const;
 

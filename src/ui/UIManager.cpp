@@ -129,6 +129,7 @@ void UIManager::showMutations(const Plant& plant) const {
 }
 
 void UIManager::showEventLog() const {
+	// TODO: #42 implement event log storage and rendering
 	std::cout << translate("บันทึกเหตุการณ์", "Event log", "事件日志") << '\n';
-	std::cout << "  " << translate("ยังไม่มีเหตุการณ์", "No events yet", "暂无事件") << '\n';
+	std::cout << "  " << translate("TODO #42: implement event log", "TODO #42: implement event log", "TODO #42: implement event log") << '\n';
 }

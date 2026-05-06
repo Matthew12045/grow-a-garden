@@ -1,0 +1,7 @@
+Fonts included should be open-source replacements for Arial (do not include Microsoft-owned Arial).
+
+Recommended replacement: Liberation Sans (SIL Open Font License) or Roboto (Apache License).
+
+If you add Liberation Sans or Roboto, include the upstream LICENSE file alongside the TTF and note the source.
+
+Do not commit Microsoft Arial.ttf into the repository. Replace the file and migrate via Git LFS.

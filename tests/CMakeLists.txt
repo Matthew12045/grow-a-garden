@@ -7,6 +7,7 @@ set(UNIT_TEST_SOURCES
     test_weather.cpp
     test_inventory_shop.cpp
     test_events.cpp
+    test_ui_audio.cpp
 )
 
 add_executable(GrowAGardenTests ${UNIT_TEST_SOURCES} ${GAME_SOURCES})
