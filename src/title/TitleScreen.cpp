@@ -58,15 +58,14 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
         logoLoaded = introTexture.loadFromImage(fallbackLogo);
     }
     introSprite = new sf::Sprite(introTexture);
-    // Center and scale the logo
+    // Center and scale the logo - will be positioned dynamically in draw() based on window size
     auto logoSize = introTexture.getSize();
     if (logoSize.x > 0 && logoSize.y > 0) {
-        float scale = std::min(1920.f / logoSize.x, 1080.f / logoSize.y) * 0.8f; // 80% of screen
+        // Set origin to center so we can position by center point
+        introSprite->setOrigin(sf::Vector2f(logoSize.x / 2.f, logoSize.y / 2.f));
+        // Calculate scale to fit 80% of a standard window (will be adjusted in draw based on actual window)
+        float scale = std::min(1920.f / logoSize.x, 1080.f / logoSize.y) * 0.8f;
         introSprite->setScale(sf::Vector2f(scale, scale));
-        introSprite->setPosition(
-            sf::Vector2f((1920.f - logoSize.x * scale) / 2.f,
-                         (1080.f - logoSize.y * scale) / 2.f)
-        );
     }
     
     // Create buttons (order: START, RESET, CREDIT, LEAVE)
@@ -319,6 +318,10 @@ void TitleScreen::draw(sf::RenderWindow& window) {
 
         // Draw logo with fade
         if (introSprite) {
+            // Position logo at center of window (origin is set to center of sprite)
+            introSprite->setPosition(
+                sf::Vector2f(sz.x / 2.f, sz.y / 2.f)
+            );
             // Calculate alpha for logo (inverted from fadeAlpha)
             // When fadeAlpha goes from 0 to 255, logo goes from 0 to 255
             // When fadeAlpha goes from 255 to 0 (dimming), logo goes from 255 to 0
