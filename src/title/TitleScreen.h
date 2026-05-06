@@ -43,6 +43,10 @@ private:
     sf::Texture introTexture;
     sf::Sprite* introSprite;
     
+    sf::Texture startTexture;
+    sf::Texture resetTexture;
+    sf::Texture leaveTexture;
+    
     std::unique_ptr<Button> startButton;
     std::unique_ptr<Button> creditsButton;
     std::unique_ptr<Button> exitButton;

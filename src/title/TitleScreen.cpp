@@ -58,14 +58,12 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
         logoLoaded = introTexture.loadFromImage(fallbackLogo);
     }
     introSprite = new sf::Sprite(introTexture);
-    // Center and scale the logo - will be positioned dynamically in draw() based on window size
+    // Center the logo using its texture center; scale is updated in draw() from the current window size
     auto logoSize = introTexture.getSize();
     if (logoSize.x > 0 && logoSize.y > 0) {
         // Set origin to center so we can position by center point
         introSprite->setOrigin(sf::Vector2f(logoSize.x / 2.f, logoSize.y / 2.f));
-        // Calculate scale to fit 80% of a standard window (will be adjusted in draw based on actual window)
-        float scale = std::min(1920.f / logoSize.x, 1080.f / logoSize.y) * 0.8f;
-        introSprite->setScale(sf::Vector2f(scale, scale));
+        introSprite->setScale(sf::Vector2f(1.f, 1.f));
     }
     
     // Create buttons (order: START, RESET, CREDIT, LEAVE)
@@ -87,6 +85,16 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
     resetButton = std::make_unique<Button>(800.f, startY + 1 * (btnHeight + spacing), btnWidth, btnHeight, "RESET");
     creditsButton = std::make_unique<Button>(800.f, startY + 2 * (btnHeight + spacing), btnWidth, btnHeight, "CREDIT");
     exitButton = std::make_unique<Button>(800.f, startY + 3 * (btnHeight + spacing), btnWidth, btnHeight, "LEAVE");
+    
+    if (startTexture.loadFromFile("assets/textures/start.PNG")) {
+        startButton->setTexture(startTexture);
+    }
+    if (resetTexture.loadFromFile("assets/textures/reset.PNG")) {
+        resetButton->setTexture(resetTexture);
+    }
+    if (leaveTexture.loadFromFile("assets/textures/leave.PNG")) {
+        exitButton->setTexture(leaveTexture);
+    }
     
     exitButtonHomePos = exitButton->getPosition();
     exitButtonTargetPos = exitButton->getPosition();
@@ -306,18 +314,24 @@ void TitleScreen::updateExitButtonEvasion(const sf::Vector2f& mousePos, float de
 }
 
 void TitleScreen::draw(sf::RenderWindow& window) {
-    sf::Vector2u sz = window.getSize();
+    sf::Vector2f sz = window.getView().getSize();
 
     // Handle intro states with logo and transitions
     if (currentState == State::FadingIn || currentState == State::IntroHoldLogo || 
         currentState == State::IntroDimLogo) {
         // Draw black background
-        sf::RectangleShape black(sf::Vector2f(static_cast<float>(sz.x), static_cast<float>(sz.y)));
+        sf::RectangleShape black(sz);
         black.setFillColor(sf::Color::Black);
         window.draw(black);
 
         // Draw logo with fade
         if (introSprite) {
+            auto logoSize = introTexture.getSize();
+            if (logoSize.x > 0 && logoSize.y > 0) {
+                float scale = std::min(sz.x / logoSize.x, sz.y / logoSize.y) * 0.55f;
+                scale = std::min(scale, 2.25f);
+                introSprite->setScale(sf::Vector2f(scale, scale));
+            }
             // Position logo at center of window (origin is set to center of sprite)
             introSprite->setPosition(
                 sf::Vector2f(sz.x / 2.f, sz.y / 2.f)
@@ -334,7 +348,7 @@ void TitleScreen::draw(sf::RenderWindow& window) {
 
     if (currentState == State::IntroLoading) {
         // Draw black background
-        sf::RectangleShape black(sf::Vector2f(static_cast<float>(sz.x), static_cast<float>(sz.y)));
+        sf::RectangleShape black(sz);
         black.setFillColor(sf::Color::Black);
         window.draw(black);
 
@@ -345,8 +359,10 @@ void TitleScreen::draw(sf::RenderWindow& window) {
             sf::Text loadingText(ft, "Loading...", size);
             loadingText.setFillColor(sf::Color::White);
             auto lb = loadingText.getLocalBounds();
-            float lx = static_cast<float>(sz.x) / 2.f - lb.size.x / 2.f;
-            float ly = static_cast<float>(sz.y) / 2.f - 48.f;
+            float textCenterX = lb.position.x + lb.size.x / 2.f;
+            float textCenterY = lb.position.y + lb.size.y / 2.f;
+            float lx = sz.x / 2.f - textCenterX;
+            float ly = sz.y / 2.f - textCenterY - 48.f;
             loadingText.setPosition(sf::Vector2f(lx, ly));
             window.draw(loadingText);
         }
@@ -355,8 +371,8 @@ void TitleScreen::draw(sf::RenderWindow& window) {
         float progress = std::min(1.f, loadingTimer / loadingDuration);
         float barW = 600.f;
         float barH = 24.f;
-        float bx = static_cast<float>(sz.x) / 2.f - barW / 2.f;
-        float by = static_cast<float>(sz.y) / 2.f - barH / 2.f;
+        float bx = sz.x / 2.f - barW / 2.f;
+        float by = sz.y / 2.f - barH / 2.f;
 
         // Filled portion
         sf::RectangleShape fill(sf::Vector2f(barW * progress, barH));
@@ -430,7 +446,8 @@ void TitleScreen::draw(sf::RenderWindow& window) {
 }
 
 void TitleScreen::reset() {
-    currentState = State::FadingIn;
+    // When returning from anywhere via escape, go straight back to Active menu, DO NOT replay the intro.
+    currentState = State::Active;
     fadeAlpha = 0.f;
     introTimer = 0.f;
     loadingTimer = 0.f;
@@ -439,4 +456,5 @@ void TitleScreen::reset() {
     exitButtonEvading = false;
     evasionTimer = 0.f;
     exitButton->setPosition(exitButtonHomePos.x, exitButtonHomePos.y);
+    if (creditsScreen) creditsScreen->hide();
 }

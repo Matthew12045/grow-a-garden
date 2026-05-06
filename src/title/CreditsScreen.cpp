@@ -57,8 +57,8 @@ void CreditsScreen::draw(sf::RenderWindow& window) {
     
     // Don't draw black background - let title background show through and dim
     
-    float windowWidth = window.getSize().x;
-    float windowHeight = window.getSize().y;
+    float windowWidth = window.getView().getSize().x;
+    float windowHeight = window.getView().getSize().y;
     float fadeZoneHeight = windowHeight * 0.15f; // 15% at top and bottom fade
     
     // Draw dim overlay FIRST (behind the text)
