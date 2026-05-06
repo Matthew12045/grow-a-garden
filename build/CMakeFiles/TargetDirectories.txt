@@ -1,3 +1,0 @@
-C:/Users/Legion Pro5/Documents/GitHub/grow-a-garden/build/CMakeFiles/GrowAGarden.dir
-C:/Users/Legion Pro5/Documents/GitHub/grow-a-garden/build/CMakeFiles/edit_cache.dir
-C:/Users/Legion Pro5/Documents/GitHub/grow-a-garden/build/CMakeFiles/rebuild_cache.dir

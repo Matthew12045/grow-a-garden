@@ -59,6 +59,7 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
     creditsButton = std::make_unique<Button>(800.f, startY + 2 * (btnHeight + spacing), btnWidth, btnHeight, "CREDIT");
     exitButton = std::make_unique<Button>(800.f, startY + 3 * (btnHeight + spacing), btnWidth, btnHeight, "LEAVE");
     
+    exitButtonHomePos = exitButton->getPosition();
     exitButtonTargetPos = exitButton->getPosition();
     shouldResetGame = false;
     
@@ -189,16 +190,6 @@ void TitleScreen::resetGame() {
 }
 
 void TitleScreen::updateExitButtonEvasion(const sf::Vector2f& mousePos, float deltaTime) {
-    if (!exitButtonEvading) return;
-
-    evasionTimer += deltaTime;
-
-    // Stop evading after 5 seconds
-    if (evasionTimer > 5.f) {
-        exitButtonEvading = false;
-        return;
-    }
-
     auto buttonPos = exitButton->getPosition();
     auto buttonBounds = exitButton->getBounds();
     sf::Vector2f buttonCenter(
@@ -211,24 +202,37 @@ void TitleScreen::updateExitButtonEvasion(const sf::Vector2f& mousePos, float de
     float dy = buttonCenter.y - mousePos.y;
     float distance = std::sqrt(dx * dx + dy * dy);
 
-    // Desired offset grows when closer
-    float push = 0.f;
-    if (distance < 200.f) {
-        push = (200.f - distance) / 200.f * 220.f; // up to ~220px
+    if (distance >= 200.f) {
+        exitButtonEvading = false;
+        evasionTimer = 0.f;
+        exitButtonTargetPos = exitButtonHomePos;
+    } else {
+        evasionTimer += deltaTime;
+
+        // Stop evading after 5 seconds, then return home
+        if (evasionTimer > 5.f) {
+            exitButtonEvading = false;
+            exitButtonTargetPos = exitButtonHomePos;
+        } else {
+            exitButtonEvading = true;
+
+            // Desired offset grows when closer
+            float push = (200.f - distance) / 200.f * 220.f; // up to ~220px
+
+            // Calculate target position using direction
+            float angle = std::atan2(dy, dx);
+            sf::Vector2f targetCenter(
+                buttonCenter.x + std::cos(angle) * push,
+                buttonCenter.y + std::sin(angle) * push
+            );
+
+            // Convert center to top-left
+            exitButtonTargetPos = sf::Vector2f(
+                std::max(50.f, std::min(targetCenter.x - buttonBounds.size.x / 2.f, 1920.f - buttonBounds.size.x - 50.f)),
+                std::max(50.f, std::min(targetCenter.y - buttonBounds.size.y / 2.f, 1080.f - buttonBounds.size.y - 50.f))
+            );
+        }
     }
-
-    // Calculate target position using direction
-    float angle = std::atan2(dy, dx);
-    sf::Vector2f targetCenter(
-        buttonCenter.x + std::cos(angle) * push,
-        buttonCenter.y + std::sin(angle) * push
-    );
-
-    // Convert center to top-left
-    exitButtonTargetPos = sf::Vector2f(
-        std::max(50.f, std::min(targetCenter.x - buttonBounds.size.x / 2.f, 1920.f - buttonBounds.size.x - 50.f)),
-        std::max(50.f, std::min(targetCenter.y - buttonBounds.size.y / 2.f, 1080.f - buttonBounds.size.y - 50.f))
-    );
 
     // Smoothly move current position toward target (damped spring / lerp)
     auto cur = buttonPos;
@@ -299,4 +303,5 @@ void TitleScreen::reset() {
     shouldExitGame = false;
     exitButtonEvading = false;
     evasionTimer = 0.f;
+    exitButton->setPosition(exitButtonHomePos.x, exitButtonHomePos.y);
 }

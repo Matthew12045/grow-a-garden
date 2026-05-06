@@ -55,6 +55,7 @@ private:
     bool shouldExitGame;
     bool shouldResetGame;
     bool exitButtonEvading;
+    sf::Vector2f exitButtonHomePos;
     sf::Vector2f exitButtonTargetPos;
     sf::Vector2f exitButtonVelocity;
     float evasionTimer;
