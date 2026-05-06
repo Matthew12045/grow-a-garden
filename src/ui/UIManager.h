@@ -23,8 +23,7 @@ public:
 					  const std::string& chinese) const;
 	std::string weatherToString(WeatherType weather) const;
 	std::string mutationToString(MutationType mutation) const;
-
-public:
+    
 	UIManager();
 
 	void showInventory(const Inventory& inv) const;

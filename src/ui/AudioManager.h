@@ -3,6 +3,7 @@
 #include "../world/WeatherSystem.h"
 
 #include <SFML/Audio.hpp>
+#include <algorithm>
 #include <array>
 #include <string>
 #include <vector>

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 project(GrowAGarden LANGUAGES CXX)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,8 +16,13 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-# ── Find SFML 3 ─────────────────────────────────────────────────────────────
-find_package(SFML 3 COMPONENTS Graphics Window System Audio REQUIRED)
+# Download SFML 3 automatically
+FetchContent_Declare(
+    SFML
+    GIT_REPOSITORY https://github.com/SFML/SFML.git
+    GIT_TAG        3.0.0 # Or whatever specific 3.x version you want
+)
+FetchContent_MakeAvailable(SFML)
 
 # ── Include directories ──────────────────────────────────────────────────────
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
