@@ -12,7 +12,6 @@ public:
         FadingIn,
         IntroHoldLogo,
         IntroDimLogo,
-        IntroRevealTitle,
         IntroLoading,
         Active,
         Transitioning,
@@ -65,7 +64,6 @@ private:
     static constexpr float kIntroFadeDuration = 2.0f;
     static constexpr float kIntroHoldDuration = 2.0f;
     static constexpr float kIntroDimDuration = 1.5f;
-    static constexpr float kIntroRevealDuration = 1.5f;
     static constexpr float kLoadingDuration = 3.0f;
     
     bool shouldStart;

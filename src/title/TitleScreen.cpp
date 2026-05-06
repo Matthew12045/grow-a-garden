@@ -139,25 +139,12 @@ void TitleScreen::update(float deltaTime, const sf::Vector2f& mousePos, bool mou
             break;
 
         case State::IntroDimLogo: {
-            // Dim the logo and fade to black
+            // Dim the logo and fade to black, then go to loading screen
             introTimer += deltaTime;
             float dimProgress = introTimer / kIntroDimDuration;
             fadeAlpha = maxFade * (1.f - dimProgress); // Fade from white to black
             if (introTimer >= kIntroDimDuration) {
                 fadeAlpha = 0.f;
-                introTimer = 0.f;
-                currentState = State::IntroRevealTitle;
-            }
-            break;
-        }
-
-        case State::IntroRevealTitle: {
-            // Reveal the title screen (fade from black)
-            introTimer += deltaTime;
-            float revealProgress = introTimer / kIntroRevealDuration;
-            fadeAlpha = maxFade * (1.f - revealProgress);
-            if (introTimer >= kIntroRevealDuration) {
-                fadeAlpha = maxFade;
                 introTimer = 0.f;
                 loadingTimer = 0.f;
                 currentState = State::IntroLoading;
@@ -342,18 +329,6 @@ void TitleScreen::draw(sf::RenderWindow& window) {
         return;
     }
 
-    if (currentState == State::IntroRevealTitle) {
-        // Draw background
-        if (backgroundSprite) window.draw(*backgroundSprite);
-        
-        // Draw dark overlay that fades away to reveal title
-        sf::RectangleShape dimOverlay(sf::Vector2f(static_cast<float>(sz.x), static_cast<float>(sz.y)));
-        float overlayAlpha = std::min(255.f, fadeAlpha);
-        dimOverlay.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(overlayAlpha)));
-        window.draw(dimOverlay);
-        return;
-    }
-
     if (currentState == State::IntroLoading) {
         // Draw black background
         sf::RectangleShape black(sf::Vector2f(static_cast<float>(sz.x), static_cast<float>(sz.y)));
@@ -445,7 +420,6 @@ void TitleScreen::draw(sf::RenderWindow& window) {
         case State::FadingIn:
         case State::IntroHoldLogo:
         case State::IntroDimLogo:
-        case State::IntroRevealTitle:
         case State::IntroLoading:
         default:
             break;
