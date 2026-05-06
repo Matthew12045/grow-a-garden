@@ -13,10 +13,10 @@
 #include "../entities/Carrot.h"
 
 // ─── Layout (1920x1080) ─────────────────────────────────────────────
-inline constexpr float CELL_SZ      = 36.f;
+inline constexpr float CELL_SZ      = 144.f;
 inline constexpr float BOARD_PAD    = 12.f;
-inline constexpr float BOARD_W      = 20 * CELL_SZ + BOARD_PAD * 2;
-inline constexpr float BOARD_H      = 20 * CELL_SZ + BOARD_PAD * 2;
+inline constexpr float BOARD_W      = 5 * CELL_SZ + BOARD_PAD * 2; // Changed from 20 to 5
+inline constexpr float BOARD_H      = 4 * CELL_SZ + BOARD_PAD * 2; // Changed from 20 to 4
 inline constexpr float BOARD_X      = (1920.f - BOARD_W) / 2.f;
 inline constexpr float BOARD_Y      = 88.f;
 inline constexpr float GRID_X       = BOARD_X + BOARD_PAD;

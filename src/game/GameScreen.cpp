@@ -65,15 +65,18 @@ void GameScreen::handleEvent(const sf::Event& ev) {
     }
 
     if (auto* mb = ev.getIf<sf::Event::MouseButtonReleased>()) {
-        if (mb->button == sf::Mouse::Button::Left)
-            onMouseClick({ (float)mb->position.x, (float)mb->position.y });
+        if (mb->button == sf::Mouse::Button::Left) {
+            // FIX: Map raw window pixels to the game's scaled view coordinates
+            sf::Vector2f worldPos = window_.mapPixelToCoords(mb->position);
+            onMouseClick(worldPos);
+        }
     }
 }
 
 void GameScreen::onMouseClick(sf::Vector2f pos) {
     // ── Garden grid ──────────────────────────────────────────────────
-    bool inGrid = (pos.x >= GRID_X && pos.x < GRID_X + 20*CELL_SZ &&
-                   pos.y >= GRID_Y && pos.y < GRID_Y + 20*CELL_SZ);
+    bool inGrid = (pos.x >= GRID_X && pos.x < GRID_X + 5*CELL_SZ &&
+                   pos.y >= GRID_Y && pos.y < GRID_Y + 4*CELL_SZ); // Changed 20s to 5 and 4
     if (inGrid) { handleCellClick(pos); return; }
 
     // ── Shop button ──────────────────────────────────────────────────
@@ -132,7 +135,7 @@ void GameScreen::update(float dt) {
 void GameScreen::handleCellClick(sf::Vector2f pos) {
     int gx = (int)((pos.x - GRID_X) / CELL_SZ);
     int gy = (int)((pos.y - GRID_Y) / CELL_SZ);
-    if (gx < 0 || gx >= 20 || gy < 0 || gy >= 20) return;
+    if (gx < 0 || gx >= 5 || gy < 0 || gy >= 4) return;
 
     Cell&  cell  = game_.getGarden().getCell(gx, gy);
     Plant* plant = cell.getPlant();
@@ -450,11 +453,13 @@ void GameScreen::drawGardenBoard(sf::Vector2f mouse) {
 // Single cell
 // ─────────────────────────────────────────────────────────────────────
 void GameScreen::drawCell(int gx, int gy, sf::Vector2f s, bool hov) {
-    const float GAP = 1.5f;
-    const float SZ  = CELL_SZ - GAP;
+    float scale = CELL_SZ / 36.f; // Automatically scales based on original 36px size
+    float gap = 1.5f * scale;
+    float sz  = CELL_SZ - gap;
+    float hl  = 2.f * scale; // Highlight thickness
 
     const Cell& cell  = game_.getGarden().getCell(gx, gy);
-    Plant*      plant = cell.getPlant();
+    Plant* plant = cell.getPlant();
 
     sf::Color base = plant ? Pal::SOIL_DRK : Pal::SOIL_MID;
     if (hov && !plant) base = { 160, 110, 56 };
@@ -462,29 +467,29 @@ void GameScreen::drawCell(int gx, int gy, sf::Vector2f s, bool hov) {
 
     // Shadow (bottom-right)
     {
-        sf::RectangleShape sh({ SZ, SZ });
-        sh.setPosition({ s.x + GAP, s.y + GAP });
+        sf::RectangleShape sh({ sz, sz });
+        sh.setPosition({ s.x + gap, s.y + gap });
         sh.setFillColor(Pal::SOIL_DRK);
         window_.draw(sh);
     }
     // Face
     {
-        sf::RectangleShape face({ SZ - 2.f, SZ - 2.f });
-        face.setPosition({ s.x + GAP, s.y + GAP });
+        sf::RectangleShape face({ sz - hl, sz - hl });
+        face.setPosition({ s.x + gap, s.y + gap });
         face.setFillColor(base);
         window_.draw(face);
     }
     // Highlight (top-left pixel lines)
     {
-        sf::RectangleShape hl({ SZ - 2.f, 2.f });
-        hl.setPosition({ s.x + GAP, s.y + GAP });
-        hl.setFillColor(Pal::SOIL_LIT);
-        window_.draw(hl);
+        sf::RectangleShape hlTop({ sz - hl, hl });
+        hlTop.setPosition({ s.x + gap, s.y + gap });
+        hlTop.setFillColor(Pal::SOIL_LIT);
+        window_.draw(hlTop);
 
-        sf::RectangleShape vl({ 2.f, SZ - 2.f });
-        vl.setPosition({ s.x + GAP, s.y + GAP });
-        vl.setFillColor(Pal::SOIL_LIT);
-        window_.draw(vl);
+        sf::RectangleShape vlLeft({ hl, sz - hl });
+        vlLeft.setPosition({ s.x + gap, s.y + gap });
+        vlLeft.setFillColor(Pal::SOIL_LIT);
+        window_.draw(vlLeft);
     }
 
     if (plant) drawPlant(plant, s);
@@ -496,6 +501,7 @@ void GameScreen::drawCell(int gx, int gy, sf::Vector2f s, bool hov) {
 void GameScreen::drawPlant(Plant* p, sf::Vector2f s) {
     if (!p) return;
 
+    float scale = CELL_SZ / 36.f;
     int stage    = p->getStage();
     int maxStage = p->getMaxStages();
     bool ripe    = p->isFullyGrown();
@@ -505,58 +511,57 @@ void GameScreen::drawPlant(Plant* p, sf::Vector2f s) {
 
     if (ripe) {
         // ── Ripe carrot: orange body + green top ──────────────────────
-        // Body (triangle pointing down = carrot shape)
         sf::ConvexShape carrot(3);
-        float hw = 7.f, ht = 12.f;
-        carrot.setPoint(0, { cx - hw, cy - 4.f });
-        carrot.setPoint(1, { cx + hw, cy - 4.f });
+        float hw = 7.f * scale, ht = 12.f * scale;
+        carrot.setPoint(0, { cx - hw, cy - 4.f * scale });
+        carrot.setPoint(1, { cx + hw, cy - 4.f * scale });
         carrot.setPoint(2, { cx,      cy + ht  });
         carrot.setFillColor({ 230, 120, 30 });
         window_.draw(carrot);
 
         // Green stem (rectangle above body)
-        sf::RectangleShape stem({ 4.f, 6.f });
-        stem.setPosition({ cx - 2.f, cy - 10.f });
+        sf::RectangleShape stem({ 4.f * scale, 6.f * scale });
+        stem.setPosition({ cx - 2.f * scale, cy - 10.f * scale });
         stem.setFillColor({ 60, 170, 60 });
         window_.draw(stem);
 
         // Leaves (two small diagonal rects)
-        sf::RectangleShape lLeaf({ 6.f, 3.f });
-        lLeaf.setPosition({ cx - 8.f, cy - 11.f });
+        sf::RectangleShape lLeaf({ 6.f * scale, 3.f * scale });
+        lLeaf.setPosition({ cx - 8.f * scale, cy - 11.f * scale });
         lLeaf.setFillColor({ 60, 170, 60 });
         lLeaf.setRotation(sf::degrees(-30.f));
         window_.draw(lLeaf);
 
-        sf::RectangleShape rLeaf({ 6.f, 3.f });
-        rLeaf.setPosition({ cx + 2.f, cy - 11.f });
+        sf::RectangleShape rLeaf({ 6.f * scale, 3.f * scale });
+        rLeaf.setPosition({ cx + 2.f * scale, cy - 11.f * scale });
         rLeaf.setFillColor({ 60, 170, 60 });
         rLeaf.setRotation(sf::degrees(30.f));
         window_.draw(rLeaf);
 
         // Glow ring around cell when ripe
-        sf::RectangleShape glow({ CELL_SZ - 3.f, CELL_SZ - 3.f });
-        glow.setPosition({ s.x + 1.5f, s.y + 1.5f });
+        sf::RectangleShape glow({ CELL_SZ - 3.f * scale, CELL_SZ - 3.f * scale });
+        glow.setPosition({ s.x + 1.5f * scale, s.y + 1.5f * scale });
         glow.setFillColor(sf::Color::Transparent);
-        glow.setOutlineThickness(2.f);
+        glow.setOutlineThickness(2.f * scale);
         glow.setOutlineColor({ 255, 220, 30, 200 });
         window_.draw(glow);
 
     } else {
         // ── Growing stages: green sprout ─────────────────────────────
         float ratio  = (float)stage / (float)maxStage;
-        float height = 4.f + ratio * 12.f;
+        float height = (4.f + ratio * 12.f) * scale;
 
         // Stem
-        sf::RectangleShape stem({ 3.f, height });
-        stem.setPosition({ cx - 1.5f, cy + 4.f - height });
+        sf::RectangleShape stem({ 3.f * scale, height });
+        stem.setPosition({ cx - 1.5f * scale, cy + 4.f * scale - height });
         stem.setFillColor(Pal::SPROUT);
         window_.draw(stem);
 
         // Leaf (small horizontal bar at top)
         if (stage >= 1) {
-            float lw = 3.f + ratio * 7.f;
-            sf::RectangleShape leaf({ lw, 3.f });
-            leaf.setPosition({ cx - lw/2.f, cy + 3.f - height });
+            float lw = (3.f + ratio * 7.f) * scale;
+            sf::RectangleShape leaf({ lw, 3.f * scale });
+            leaf.setPosition({ cx - lw/2.f, cy + 3.f * scale - height });
             leaf.setFillColor({ 50, 150, 50 });
             window_.draw(leaf);
         }
@@ -564,9 +569,10 @@ void GameScreen::drawPlant(Plant* p, sf::Vector2f s) {
 
     // Mutation dot (top-right corner)
     if (!p->getMutations().empty()) {
-        sf::CircleShape dot(3.5f);
+        float dotR = 3.5f * scale;
+        sf::CircleShape dot(dotR);
         dot.setFillColor(Pal::MUTATION);
-        dot.setPosition({ s.x + CELL_SZ - 8.f, s.y + 2.f });
+        dot.setPosition({ s.x + CELL_SZ - dotR * 2.f - 2.f * scale, s.y + 2.f * scale });
         window_.draw(dot);
     }
 }

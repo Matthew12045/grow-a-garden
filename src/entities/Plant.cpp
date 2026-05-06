@@ -147,11 +147,19 @@ std::vector<MutationType> Plant::getMutations() const
 
 double Plant::calcPrice()
 {
-    double finalPrice = sellPrice_;
+    // If the plant has no mutations, it just sells for the base price
+    if (mutations_.empty()) {
+        return sellPrice_;
+    }
+
+    double finalPrice = 0.0;
+
+    // Multiply the base price by each multiplier, then add them all up
     for (const auto& m : mutations_)
     {
-        finalPrice *= m.getMultiplier();
+        finalPrice += (sellPrice_ * m.getMultiplier());
     }
+
     return finalPrice;
 }
 

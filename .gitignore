@@ -38,3 +38,4 @@ progress.zip
 .cache/
 build-win/
 cmake/
+.vs/
