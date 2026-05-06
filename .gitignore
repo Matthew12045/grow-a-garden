@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-build/
-=======
 # Build output
 build/
 *.o
@@ -38,6 +35,4 @@ skills-lock.json
 
 # Project archives
 progress.zip
-
 .cache/
->>>>>>> 45317886717907b1e839538ec91873fb92f9ce2c
