@@ -34,8 +34,15 @@ Button::Button(float x, float y, float width, float height, const std::string& t
 
     buttonTextString = text;
     buttonText = nullptr;
+    buttonSprite = nullptr;
+    buttonTexture = nullptr;
     currentScale = 1.0f;
     targetScale = 1.0f;
+}
+
+Button::~Button() {
+    if (buttonText) delete buttonText;
+    if (buttonSprite) delete buttonSprite;
 }
 
 void Button::setFont(const sf::Font& font) {
@@ -53,6 +60,28 @@ void Button::setFont(const sf::Font& font) {
         bounds.position.y + bounds.size.y / 2.f - tb.size.y / 2.f - 5.f
     ));
     buttonText->setScale(sf::Vector2f(currentScale, currentScale));
+}
+
+void Button::setTexture(const sf::Texture& texture) {
+    buttonTexture = &texture;
+    if (buttonSprite) delete buttonSprite;
+    buttonSprite = new sf::Sprite(texture);
+    
+    // Set origin to the center of the image to scale from the center
+    auto texSize = texture.getSize();
+    buttonSprite->setOrigin(sf::Vector2f(texSize.x / 2.f, texSize.y / 2.f));
+    
+    float baseScaleX = bounds.size.x / (float)texSize.x;
+    float baseScaleY = bounds.size.y / (float)texSize.y;
+    
+    buttonSprite->setPosition(sf::Vector2f(
+        bounds.position.x + bounds.size.x / 2.f,
+        bounds.position.y + bounds.size.y / 2.f
+    ));
+    buttonSprite->setScale(sf::Vector2f(baseScaleX * currentScale, baseScaleY * currentScale));
+    
+    // Initial color
+    updateColors();
 }
 
 void Button::update(const sf::Vector2f& mousePos) {
@@ -77,8 +106,11 @@ void Button::update(const sf::Vector2f& mousePos, float deltaTime) {
 }
 
 void Button::draw(sf::RenderWindow& window) {
-    // Text-only button: skip rectangle drawing
-    if (buttonText) {
+    if (buttonSprite) {
+        window.draw(*buttonSprite);
+    } 
+    // Text-only button/fallback:
+    else if (buttonText) {
         window.draw(*buttonText);
     } else {
         // Draw a simple fallback bitmap text when no font is loaded
@@ -145,6 +177,13 @@ void Button::setPosition(float x, float y) {
     buttonShape.setPosition(sf::Vector2f(x, y));
     bounds.position = sf::Vector2f(x, y);
     
+    if (buttonSprite) {
+        buttonSprite->setPosition(sf::Vector2f(
+            x + bounds.size.x / 2.f,
+            y + bounds.size.y / 2.f
+        ));
+    }
+    
     if (buttonText) {
         auto textBounds = buttonText->getLocalBounds();
         buttonText->setPosition(sf::Vector2f(
@@ -158,12 +197,15 @@ void Button::updateColors() {
     switch (state) {
         case State::Normal:
             if (buttonText) buttonText->setFillColor(textNormalColor);
+            if (buttonSprite) buttonSprite->setColor(sf::Color(180, 180, 180, 255)); // darker
             break;
         case State::Hovered:
             if (buttonText) buttonText->setFillColor(textHoveredColor);
+            if (buttonSprite) buttonSprite->setColor(sf::Color(255, 255, 255, 255)); // light up
             break;
         case State::Pressed:
             if (buttonText) buttonText->setFillColor(textHoveredColor);
+            if (buttonSprite) buttonSprite->setColor(sf::Color(255, 255, 255, 255));
             break;
     }
 }
@@ -173,6 +215,17 @@ void Button::updateScale(float deltaTime) {
     const float stiffness = 12.f; // higher = snappier
     float t = 1.f - std::exp(-stiffness * std::max(0.0f, deltaTime));
     currentScale += (targetScale - currentScale) * t;
+    
+    if (buttonSprite) {
+        auto texSize = buttonTexture->getSize();
+        float baseScaleX = bounds.size.x / (float)texSize.x;
+        float baseScaleY = bounds.size.y / (float)texSize.y;
+        // make it grow nicely by not modifying bounds position but just the internal scale
+        // scale limit so it doesn't get ridiculously large, just slightly pop out like targetScale (up to 2.0x for text, maybe 1.15x for image)
+        float imageScale = 1.0f + (currentScale - 1.0f) * 0.15f; 
+        buttonSprite->setScale(sf::Vector2f(baseScaleX * imageScale, baseScaleY * imageScale));
+    }
+    
     // Apply scale to text and recenter
     if (buttonText) {
         buttonText->setScale(sf::Vector2f(currentScale, currentScale));
