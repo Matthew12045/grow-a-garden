@@ -11,7 +11,7 @@ class Tool : public Item {
 protected:
 	int durability_;
 
-public:
+protected:
 	Tool(std::size_t id,
 		 std::string name,
 		 std::string description,
@@ -19,6 +19,7 @@ public:
 		 int durability);
 	~Tool() override = default;
 
+public:
 	double getPrice() const override;
 	int getDurability() const;
 

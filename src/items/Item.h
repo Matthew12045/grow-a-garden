@@ -10,10 +10,11 @@ protected:
     std::string description_;
     double basePrice_;
 
-public:
+protected:
     Item(std::size_t id, std::string name, std::string description, double basePrice);
     virtual ~Item() = default;
 
+public:
     virtual double getPrice() const = 0;
 
     const std::string& getName() const;

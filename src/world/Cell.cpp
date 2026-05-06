@@ -11,6 +11,7 @@ bool Cell::setPlant(std::unique_ptr<Plant> newPlant)
         return false;
     }
     plant_ = std::move(newPlant);
+    return true;
 }
 void Cell::clearPlant()
 {

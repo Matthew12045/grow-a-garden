@@ -17,12 +17,12 @@ int Garden::getHeight() const
 
 Cell& Garden::getCell(int x, int y)
 {
-    return cells_[(static_cast<std::size_t>(y) * height_) + static_cast<std::size_t>(x)];
+    return cells_[(static_cast<std::size_t>(y) * width_) + static_cast<std::size_t>(x)];
 }
 
 const Cell& Garden::getCell(int x, int y) const
 {
-    return cells_[(static_cast<std::size_t>(y) * height_) + static_cast<std::size_t>(x)];
+    return cells_[(static_cast<std::size_t>(y) * width_) + static_cast<std::size_t>(x)];
 }
 bool Garden::plantCrop(int x, int y, std::unique_ptr<Plant> crop)
 {

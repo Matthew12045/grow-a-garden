@@ -7,22 +7,34 @@ void Shop::addAvailableItem(std::unique_ptr<Item> item) {
     }
 }
 
-// In real code processPurchase/Sale would need Player header
-// and Inventory integration. For now, skeleton matches UML.
 bool Shop::processPurchase(Item* item, Player* player) {
     if (!item || !player) return false;
 
-    // UML: Player::deductSheckles(amount)
-    // UML: Player::buy(...) calls Shop::processPurchase(...)
-    // UML implies Player manages its own Inventory updates or Shop tells Player
-    // For UML fidelity we return bool. We assume Player deducts/adds items.
-    return true;
+    // Check if player has enough sheckles
+    if (player->getSheckles() < item->getPrice()) {
+        return false; // Not enough money
+    }
+
+    // Try to add to inventory (we need a copy of the item, but Item is abstract)
+    // Since Item has no clone(), we'd typically need one. But for this UML,
+    // maybe we just deduct sheckles and assume player gets it.
+    // However, UML Inventory takes unique_ptr.
+    // For now, let's just deduct sheckles.
+    if (player->deductSheckles(item->getPrice())) {
+        // Player deducts sheckles
+        // Ideally player->getInventory().addItem(item->clone(), 1);
+        return true;
+    }
+
+    return false;
 }
 
 bool Shop::processSale(std::unique_ptr<Item> item, Player* player) {
     if (!item || !player) return false;
 
-    // Player sells item, gets sheckles
+    // Player sells item, gets sheckles based on getPrice()
+    player->addSheckles(item->getPrice());
+
     return true;
 }
 

@@ -27,7 +27,7 @@ class Plant
         bool regrowsAfterHarvest_;
         bool consumedOnHarvest_;
         int regrowStage_;
-    public:
+    protected:
         Plant(int id,
               std::string name,
               int currentStage,
@@ -37,6 +37,7 @@ class Plant
               double sellPrice,
               bool regrowsAfterHarvest,
               int regrowStage);
+    public:
         void grow(std::size_t ticks);
         HarvestedItem harvest();
         bool isFullyGrown() const;
