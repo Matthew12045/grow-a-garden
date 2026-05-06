@@ -15,22 +15,24 @@ TitleScreenApp::TitleScreenApp() {
     // Create title screen
     titleScreen = std::make_unique<TitleScreen>("assets/textures/title_background.png");
     titleScreen->setFont(font);
+
+    audioManager_.updateBGM(WeatherType::SUMMER);
 }
 
 void TitleScreenApp::loadAssets() {
     // Load font
     std::vector<std::string> fontCandidates = {
-        "assets/fonts/Arial.ttf",
-        "./assets/fonts/Arial.ttf",
-        "../assets/fonts/Arial.ttf"
+        "assets/fonts/LiberationSans-Regular.ttf",
+        "./assets/fonts/LiberationSans-Regular.ttf",
+        "../assets/fonts/LiberationSans-Regular.ttf"
     };
 
     // Try to use Windows system fonts if available
     const char* windir = getenv("WINDIR");
     if (windir) {
         std::string winFonts = std::string(windir) + "\\Fonts\\";
-        fontCandidates.push_back(winFonts + "arial.ttf");
-        fontCandidates.push_back(winFonts + "ARIAL.TTF");
+        fontCandidates.push_back(winFonts + "LiberationSans-Regular.ttf");
+        fontCandidates.push_back(winFonts + "liberationsans-regular.ttf");
         fontCandidates.push_back(winFonts + "DejaVuSans.ttf");
         fontCandidates.push_back(winFonts + "dejavusans.ttf");
     }
@@ -45,7 +47,7 @@ void TitleScreenApp::loadAssets() {
     }
 
     if (!loaded) {
-        std::cerr << "Warning: Could not load font from assets/fonts/Arial.ttf or system fonts." << std::endl;
+        std::cerr << "Warning: Could not load font from assets/fonts/LiberationSans-Regular.ttf or system fonts." << std::endl;
         std::cerr << "Text will use fallback bitmap rendering until a TTF is placed in assets/fonts/." << std::endl;
     }
 }
@@ -111,6 +113,8 @@ int TitleScreenApp::run() {
         titleScreen->draw(*window);
         window->display();
     }
+
+    audioManager_.stop();
     
     return 0;
 }
