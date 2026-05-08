@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "../game/ShopData.h"
 #include "../systems/RaccoonEvent.h"
 #include "../game/PlantFactory.h"
 #include "../items/Seed.h"
@@ -7,8 +8,26 @@
 #include <fstream>
 #include <cerrno>
 #include <nlohmann/json.hpp>
+#include <algorithm>
+#include <stdexcept>
 
 using json = nlohmann::json;
+
+namespace {
+const ShopItemDef* findDefByName(const std::vector<ShopItemDef>& catalogue, const std::string& name) {
+    const auto it = std::find_if(catalogue.begin(), catalogue.end(), [&](const ShopItemDef& def) {
+        return def.name == name;
+    });
+    return (it != catalogue.end()) ? &(*it) : nullptr;
+}
+
+const ShopItemDef* findDefByCropName(const std::vector<ShopItemDef>& catalogue, const std::string& cropName) {
+    const auto it = std::find_if(catalogue.begin(), catalogue.end(), [&](const ShopItemDef& def) {
+        return def.cropName == cropName;
+    });
+    return (it != catalogue.end()) ? &(*it) : nullptr;
+}
+}
 
 Game::Game()
     : tickSystem_(1.0f), // 1 tick per second by default
@@ -108,6 +127,8 @@ void Game::loadGame() {
         json j;
         inFile >> j;
         inFile.close();
+
+        const auto catalogue = makeShopCatalogue();
         
         // Restore player sheckles
         if (j.contains("player") && j["player"].contains("sheckles")) {
@@ -120,27 +141,13 @@ void Game::loadGame() {
             for (const auto& itemEntry : j["inventory"]["items"]) {
                 std::string itemName = itemEntry["name"];
                 int quantity = itemEntry["quantity"];
-                
-                // Map seed names to crop names
-                std::string cropName;
-                if (itemName == "Carrot Seed") cropName = "Carrot";
-                else if (itemName == "Blueberry Seed") cropName = "Blueberry";
-                else if (itemName == "Rose Seed") cropName = "Rose";
-                else if (itemName == "Bamboo Seed") cropName = "Bamboo";
-                else if (itemName == "Corn Seed") cropName = "Corn";
-                else if (itemName == "Tomato Seed") cropName = "Tomato";
-                else if (itemName == "Apple Seed") cropName = "Apple";
-                else if (itemName == "Cactus Seed") cropName = "Cactus";
-                else if (itemName == "Coconut Seed") cropName = "Coconut";
-                else if (itemName == "Beanstalk Seed") cropName = "Beanstalk";
-                else if (itemName == "Cacao Seed") cropName = "Cacao";
-                else {
-                    // Unknown seed, skip
+                const ShopItemDef* def = findDefByName(catalogue, itemName);
+                if (!def) {
                     std::cerr << "Warning: Unknown seed type '" << itemName << "', skipping" << std::endl;
                     continue;
                 }
-                
-                auto seed = std::make_unique<Seed>(1, itemName, "", 0.0, cropName);
+
+                auto seed = std::make_unique<Seed>(1, def->name, def->description, def->buyPrice, def->cropName);
                 player_.getInventory().addItem(std::move(seed), quantity);
             }
         }
@@ -153,18 +160,21 @@ void Game::loadGame() {
                 std::string cropName = plantEntry["name"];
                 int stage = plantEntry.value("stage", 0);
                 int ticksElapsed = plantEntry.value("ticksElapsed", 0);
-                
-                // Create plant and grow it to the saved stage
-                auto plant = makePlant(cropName);
-                if (plant) {
-                    // Fast forward the plant to its saved stage
-                    if (ticksElapsed > 0) {
-                        plant->grow(static_cast<std::size_t>(ticksElapsed));
-                    }
-                    
-                    // Plant the crop in the garden
-                    garden_.plantCrop(x, y, std::move(plant));
+
+                const ShopItemDef* def = findDefByCropName(catalogue, cropName);
+                if (!def) {
+                    std::cerr << "Warning: Unknown crop type '" << cropName << "', skipping" << std::endl;
+                    continue;
                 }
+
+                auto plant = makePlant(*def);
+                if (ticksElapsed > 0) {
+                    plant->grow(static_cast<std::size_t>(ticksElapsed));
+                } else if (stage > 0) {
+                    plant->grow(static_cast<std::size_t>(stage) * def->growTicks / std::max(def->maxStages, 1));
+                }
+
+                garden_.plantCrop(x, y, std::move(plant));
             }
         }
         

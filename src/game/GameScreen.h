@@ -108,6 +108,7 @@ private:
     void buyItem(const ShopItemDef& def);
     void sellAll();
     void sellOne(int index);
+    void sellGroup(const std::vector<int>& indices);
     void useToolOnCell(int gx, int gy);
     void setStatus(const std::string& msg, float dur = 2.5f);
 
@@ -128,6 +129,13 @@ private:
     void drawSellPage(sf::Vector2f mouse);
     void drawCropIcon(const ShopItemDef& def, sf::Vector2f centre, float sz);
     void onShopClick(sf::Vector2f pos);
+
+    sf::FloatRect getSeedCardRect(int i, int cols, float cardsX, float cardsY, float cardW, float cardH) const;
+    sf::FloatRect getSeedButtonRect(sf::FloatRect cardRect) const;
+    sf::FloatRect getToolCardRect(int i, float cardsX, float cardsY, float cardW, float cardH) const;
+    sf::FloatRect getToolButtonRect(sf::FloatRect cardRect) const;
+    sf::FloatRect getSellCardRect(int i, int cols, float cardsX, float gridY, float cardW, float cardH) const;
+    sf::FloatRect getSellButtonRect(sf::FloatRect cardRect, float iconSz) const;
 
     void drawPxPanel(sf::Vector2f pos, sf::Vector2f sz,
                      sf::Color mid  = Pal::FRAME_MID,

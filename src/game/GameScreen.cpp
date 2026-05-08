@@ -250,9 +250,14 @@ void GameScreen::handleCellClick(sf::Vector2f pos) {
 
 void GameScreen::plantSeed(int gx, int gy) {
     if (selectedSeed_.empty()) return;
-    game_.getPlayer().getInventory().removeItem(selectedSeed_, 1);
-    game_.getGarden().plantCrop(gx, gy, makePlant(selectedSeed_));
     const auto* def = findItem(selectedSeed_);
+    if (!def) {
+        setStatus("Missing seed data for " + selectedSeed_);
+        return;
+    }
+
+    game_.getPlayer().getInventory().removeItem(selectedSeed_, 1);
+    game_.getGarden().plantCrop(gx, gy, makePlant(*def));
     setStatus("Planted " + (def ? def->cropName : selectedSeed_) + "!");
 
     if (game_.getPlayer().getInventory().getQuantity(selectedSeed_) == 0)
@@ -298,6 +303,32 @@ void GameScreen::sellOne(int index) {
     game_.getPlayer().addSheckles(price);
     std::ostringstream ss;
     ss << "Sold " << crop << " for +" << std::fixed << std::setprecision(0) << price << " S!";
+    setStatus(ss.str(), 2.5f);
+}
+
+void GameScreen::sellGroup(const std::vector<int>& indices) {
+    if (indices.empty()) return;
+
+    std::vector<int> sorted = indices;
+    std::sort(sorted.begin(), sorted.end(), std::greater<int>());
+
+    float total = 0.f;
+    std::string crop = harvestBasket_[sorted.front()].cropName;
+    int soldCount = 0;
+
+    for (int index : sorted) {
+        if (index < 0 || index >= static_cast<int>(harvestBasket_.size())) continue;
+        total += static_cast<float>(harvestBasket_[index].item.getPrice());
+        harvestBasket_.erase(harvestBasket_.begin() + index);
+        ++soldCount;
+    }
+
+    if (soldCount == 0) return;
+
+    game_.getPlayer().addSheckles(total);
+    std::ostringstream ss;
+    ss << "Sold x" << soldCount << " " << crop << " for +"
+       << std::fixed << std::setprecision(0) << total << " S!";
     setStatus(ss.str(), 2.5f);
 }
 
@@ -961,11 +992,7 @@ void GameScreen::drawShopOverlay(sf::Vector2f mouse) {
         float ch   = std::min(175.f, (cardsH - (rows-1)*10.f) / rows);
 
         for (int i = 0; i < n; ++i) {
-            int col = i % cols, row = i / cols;
-            sf::FloatRect b{
-                {cardsX + col*(cw+10.f), cardsY + row*(ch+10.f)},
-                {cw, ch}
-            };
+            sf::FloatRect b = getSeedCardRect(i, cols, cardsX, cardsY, cw, ch);
             drawSeedCard(*seeds[i], b, mouse);
         }
     } else if (shopTab_ == 1) {
@@ -977,10 +1004,7 @@ void GameScreen::drawShopOverlay(sf::Vector2f mouse) {
         float cw = (cardsW - 20.f) / 2.f;
         float ch = std::min(260.f, cardsH);
         for (int i = 0; i < (int)tools.size(); ++i) {
-            sf::FloatRect b{
-                {cardsX + i*(cw+20.f), cardsY + 20.f},
-                {cw, ch}
-            };
+            sf::FloatRect b = getToolCardRect(i, cardsX, cardsY, cw, ch);
             drawToolCard(*tools[i], b, mouse);
         }
     } else {
@@ -1200,10 +1224,7 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
     float cardH   = std::min(150.f, (gridH - (rows - 1) * 10.f) / (float)rows);
 
     for (int i = 0; i < n; ++i) {
-        int   col = i % cols, row = i / cols;
-        float bx  = cardsX + col * (cardW + 10.f);
-        float by  = gridY  + row * (cardH + 10.f);
-        sf::FloatRect b{{bx, by},{cardW, cardH}};
+        sf::FloatRect b = getSellCardRect(i, cols, cardsX, gridY, cardW, cardH);
         bool  hov = b.contains(mouse);
 
         const SellGroup& group = groups[i];
@@ -1229,10 +1250,10 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
 
         // Crop icon (left third)
         float iconSz = cardH * 0.72f;
-        float iconCX = bx + iconSz * 0.56f;
-        float iconCY = by + cardH * 0.46f;
+        float iconCX = b.position.x + iconSz * 0.56f;
+        float iconCY = b.position.y + cardH * 0.46f;
         sf::RectangleShape iconBg({iconSz, iconSz});
-        iconBg.setPosition({bx, by + (cardH - iconSz)/2.f});
+        iconBg.setPosition({b.position.x, b.position.y + (cardH - iconSz)/2.f});
         iconBg.setFillColor({28,16,5});
         window_.draw(iconBg);
 
@@ -1240,9 +1261,9 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
         if (def) drawCropIcon(*def, {iconCX, iconCY}, iconSz * 0.70f);
 
         // Text area (right of icon)
-        float tx = bx + iconSz + 10.f;
+        float tx = b.position.x + iconSz + 10.f;
         float tw = cardW - iconSz - 14.f;
-        float ty = by + 12.f;
+        float ty = b.position.y + 12.f;
 
         // Crop name
         auto nameT = makeText(entry.cropName, 20, hov ? Pal::GOLD : Pal::CREAM);
@@ -1270,9 +1291,7 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
         }
 
         // SELL button — bottom-right of card
-        float btnW = cardW - iconSz - 14.f;
-        float btnH = 26.f;
-        sf::FloatRect btnR{{tx, by + cardH - btnH - 6.f},{btnW, btnH}};
+        sf::FloatRect btnR = getSellButtonRect(b, iconSz);
         drawPxButton(btnR, count > 1 ? ("SELL x" + std::to_string(count)) : "SELL",
                      {170, 110, 20}, {215, 145, 28},
                      mouse, 16);
@@ -1306,10 +1325,8 @@ void GameScreen::onShopClick(sf::Vector2f pos) {
         float cw=(cardsW-(cols-1)*10.f)/cols;
         float ch=std::min(175.f,(cardsH-(rows-1)*10.f)/rows);
         for (int i=0;i<n;++i) {
-            int col=i%cols, row=i/cols;
-            float bx=cardsX+col*(cw+10.f), by=cardsY+row*(ch+10.f);
-            float btnW=68.f, btnH=26.f;
-            sf::FloatRect btnR{{bx+cw-btnW-6.f, by+ch-34.f+4.f},{btnW,btnH}};
+            sf::FloatRect cardR = getSeedCardRect(i, cols, cardsX, cardsY, cw, ch);
+            sf::FloatRect btnR = getSeedButtonRect(cardR);
             if (btnR.contains(pos)) { buyItem(*seeds[i]); return; }
         }
     } else if (shopTab_==1) {
@@ -1318,9 +1335,8 @@ void GameScreen::onShopClick(sf::Vector2f pos) {
         for (const auto& d:catalogue_) if(d.type==ShopItemType::TOOL) tools.push_back(&d);
         float cw=(cardsW-20.f)/2.f, ch=std::min(260.f,cardsH);
         for (int i=0;i<(int)tools.size();++i) {
-            float bx=cardsX+i*(cw+20.f), by=cardsY+20.f;
-            float btnW=110.f, btnH=34.f;
-            sf::FloatRect btnR{{bx+cw-btnW-10.f, by+ch-48.f-4.f},{btnW,btnH}};
+            sf::FloatRect cardR = getToolCardRect(i, cardsX, cardsY, cw, ch);
+            sf::FloatRect btnR = getToolButtonRect(cardR);
             if (btnR.contains(pos)) { buyItem(*tools[i]); return; }
         }
     } else {
@@ -1345,19 +1361,49 @@ void GameScreen::onShopClick(sf::Vector2f pos) {
         float cardH = std::min(150.f, (gridH - (rows-1)*10.f) / (float)rows);
 
         for (int i = 0; i < n; ++i) {
-            int   col = i % cols, row = i / cols;
-            float bx  = cardsX + col*(cardW+10.f);
-            float by  = gridY  + row*(cardH+10.f);
-
-            // Reconstruct icon size to find button position
+            sf::FloatRect cardR = getSellCardRect(i, cols, cardsX, gridY, cardW, cardH);
             float iconSz = cardH * 0.72f;
-            float tx     = bx + iconSz + 10.f;
-            float btnW   = cardW - iconSz - 14.f;
-            float btnH   = 26.f;
-            sf::FloatRect btnR{{tx, by+cardH-btnH-6.f},{btnW,btnH}};
-            if (btnR.contains(pos)) { sellOne(groups[i].indices.front()); return; }
+            sf::FloatRect btnR = getSellButtonRect(cardR, iconSz);
+            if (btnR.contains(pos)) { sellGroup(groups[i].indices); return; }
         }
     }
+}
+
+sf::FloatRect GameScreen::getSeedCardRect(int i, int cols, float cardsX, float cardsY, float cardW, float cardH) const {
+    int col = i % cols;
+    int row = i / cols;
+    return sf::FloatRect{{cardsX + col * (cardW + 10.f), cardsY + row * (cardH + 10.f)}, {cardW, cardH}};
+}
+
+sf::FloatRect GameScreen::getSeedButtonRect(sf::FloatRect cardRect) const {
+    constexpr float btnW = 68.f;
+    constexpr float btnH = 26.f;
+    float footerY = cardRect.position.y + cardRect.size.y - 34.f;
+    return sf::FloatRect{{cardRect.position.x + cardRect.size.x - btnW - 6.f, footerY + 4.f}, {btnW, btnH}};
+}
+
+sf::FloatRect GameScreen::getToolCardRect(int i, float cardsX, float cardsY, float cardW, float cardH) const {
+    return sf::FloatRect{{cardsX + i * (cardW + 20.f), cardsY + 20.f}, {cardW, cardH}};
+}
+
+sf::FloatRect GameScreen::getToolButtonRect(sf::FloatRect cardRect) const {
+    constexpr float btnW = 110.f;
+    constexpr float btnH = 34.f;
+    float footerY = cardRect.position.y + cardRect.size.y - 48.f;
+    return sf::FloatRect{{cardRect.position.x + cardRect.size.x - btnW - 10.f, footerY - 4.f}, {btnW, btnH}};
+}
+
+sf::FloatRect GameScreen::getSellCardRect(int i, int cols, float cardsX, float gridY, float cardW, float cardH) const {
+    int col = i % cols;
+    int row = i / cols;
+    return sf::FloatRect{{cardsX + col * (cardW + 10.f), gridY + row * (cardH + 10.f)}, {cardW, cardH}};
+}
+
+sf::FloatRect GameScreen::getSellButtonRect(sf::FloatRect cardRect, float iconSz) const {
+    float tx = cardRect.position.x + iconSz + 10.f;
+    float btnW = cardRect.size.x - iconSz - 14.f;
+    constexpr float btnH = 26.f;
+    return sf::FloatRect{{tx, cardRect.position.y + cardRect.size.y - btnH - 6.f}, {btnW, btnH}};
 }
 
 // ─────────────────────────────────────────────────────────────────────
