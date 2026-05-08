@@ -2,9 +2,11 @@
 #include "../core/Player.h"
 #include "../world/Garden.h"
 #include "../world/Cell.h"
-#include <cstdlib>
 
-RaccoonEvent::RaccoonEvent(int stolenAmount) : stolenAmount_(stolenAmount) {}
+RaccoonEvent::RaccoonEvent(int stolenAmount)
+    : stolenAmount_(stolenAmount),
+      rng_(std::random_device{}())
+{}
 
 void RaccoonEvent::trigger(Garden& garden, Player& player) {
     int plantsStolen = 0;
@@ -12,8 +14,10 @@ void RaccoonEvent::trigger(Garden& garden, Player& player) {
     int attempts = 0;
 
     while (plantsStolen < stolenAmount_ && attempts < maxAttempts) {
-        int x = rand() % garden.getWidth();
-        int y = rand() % garden.getHeight();
+        std::uniform_int_distribution<int> xDist(0, garden.getWidth()  - 1);
+        std::uniform_int_distribution<int> yDist(0, garden.getHeight() - 1);
+        int x = xDist(rng_);
+        int y = yDist(rng_);
 
         Cell& cell = garden.getCell(x, y);
         if (!cell.isEmpty()) {

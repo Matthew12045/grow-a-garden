@@ -7,7 +7,7 @@
 // #include "../systems/Shop.h"
 // #include "../ui/UIManager.h"
 // #include "../ui/AudioManager.h"
-// #include "../systems/RandomEventManager.h"
+#include "../systems/RandomEventManager.h"
 
 #include <memory>
 
@@ -20,7 +20,7 @@ private:
     // Shop shop_;
     // UIManager uiManager_;
     // AudioManager audioManager_;
-    // RandomEventManager randEventMgr_;
+    RandomEventManager randEventMgr_;
     long lastSaveTimestamp_;
 
 public:

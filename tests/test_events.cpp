@@ -93,66 +93,58 @@ public:
 };
 
 TEST(RandomEventManagerTest, NoEventsNoCrash) {
-    RandomEventManager mgr(1.0f, 0);
+    RandomEventManager mgr;
     Garden g(20, 20);
     Player player;
-    EXPECT_NO_THROW(mgr.checkAndTrigger(1, g, player));
+    EXPECT_NO_THROW(mgr.update(1.0f, g, player));
 }
 
-TEST(RandomEventManagerTest, RespectsCooldownDoesNotFireEarly) {
-    // Cooldown = 100 ticks; fire at tick 1 then check at tick 50.
+TEST(RandomEventManagerTest, RespectsTriggerIntervalDoesNotFireEarly) {
+    // 60 second trigger interval; call update with small deltas and verify no fire
     auto event = std::make_unique<CountingEvent>();
     CountingEvent* raw = event.get();
 
-    RandomEventManager mgr(1.0f, 100);
-    mgr.addEvent(std::move(event));
+    RandomEventManager mgr;
+    mgr.registerEvent(std::move(event));
 
     Garden g(5, 5);
     Player player;
 
-    mgr.checkAndTrigger(0, g, player);   // fires at tick 0 (first opportunity)
-    int firedAtZero = raw->triggerCount;
+    // Call update with small deltas totaling less than 60 seconds
+    for (int i = 0; i < 50; ++i) {
+        mgr.update(1.0f, g, player);  // 50 * 1.0f = 50 seconds
+    }
+    EXPECT_EQ(raw->triggerCount, 0) << "Should not fire before 60 seconds";
 
-    mgr.checkAndTrigger(50, g, player);  // only 50 ticks passed → cooldown not done
-    EXPECT_EQ(raw->triggerCount, firedAtZero) << "Should not fire during cooldown";
+    // Now push it just over 60 seconds
+    mgr.update(10.1f, g, player);
+    EXPECT_EQ(raw->triggerCount, 1) << "Should fire once after crossing 60 seconds";
 }
 
-TEST(RandomEventManagerTest, FiresAfterCooldownExpires) {
+TEST(RandomEventManagerTest, FiresMultipleTimesAfterIntervalElapses) {
     auto event = std::make_unique<CountingEvent>();
     CountingEvent* raw = event.get();
 
-    RandomEventManager mgr(1.0f, 10);  // prob=1.0 → always fires when allowed
-    mgr.addEvent(std::move(event));
+    RandomEventManager mgr;
+    mgr.registerEvent(std::move(event));
 
     Garden g(5, 5);
     Player player;
 
-    mgr.checkAndTrigger(0,  g, player);  // fires
-    mgr.checkAndTrigger(10, g, player);  // cooldown expired → fires again
-    EXPECT_EQ(raw->triggerCount, 2);
-}
+    // Accumulate 120+ seconds
+    mgr.update(61.0f, g, player);
+    int afterFirst = raw->triggerCount;
+    EXPECT_EQ(afterFirst, 1) << "Should fire once after first 60 seconds";
 
-TEST(RandomEventManagerTest, ZeroProbabilityNeverFires) {
-    auto event = std::make_unique<CountingEvent>();
-    CountingEvent* raw = event.get();
-
-    RandomEventManager mgr(0.0f, 0);  // prob=0 → never
-    mgr.addEvent(std::move(event));
-
-    Garden g(5, 5);
-    Player player;
-
-    for (int tick = 0; tick < 100; ++tick)
-        mgr.checkAndTrigger(tick, g, player);
-
-    EXPECT_EQ(raw->triggerCount, 0);
+    mgr.update(60.0f, g, player);
+    EXPECT_EQ(raw->triggerCount, 2) << "Should fire again after next 60 seconds";
 }
 
 TEST(RandomEventManagerTest, AddNullEventIsIgnored) {
-    RandomEventManager mgr(1.0f, 0);
-    EXPECT_NO_THROW(mgr.addEvent(nullptr));
+    RandomEventManager mgr;
+    EXPECT_NO_THROW(mgr.registerEvent(nullptr));
 
     Garden g(5, 5);
     Player player;
-    EXPECT_NO_THROW(mgr.checkAndTrigger(0, g, player));
+    EXPECT_NO_THROW(mgr.update(1.0f, g, player));
 }

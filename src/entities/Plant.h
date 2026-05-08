@@ -14,7 +14,6 @@ class Plant
 {
     private:
         double calcPrice();
-    protected:
         int id_;
         std::string name_;
         int currentStage_;
@@ -27,6 +26,7 @@ class Plant
         bool regrowsAfterHarvest_;
         bool consumedOnHarvest_;
         int regrowStage_;
+    public:
         Plant(int id,
               std::string name,
               int currentStage,
@@ -36,7 +36,6 @@ class Plant
               double sellPrice,
               bool regrowsAfterHarvest,
               int regrowStage);
-    public:
         virtual ~Plant() = default;
         void grow(std::size_t ticks);
         HarvestedItem harvest();

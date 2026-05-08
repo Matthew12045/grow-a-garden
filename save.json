@@ -1,0 +1,14 @@
+{
+  "game": {
+    "tick": 0
+  },
+  "garden": {
+    "plants": []
+  },
+  "inventory": {
+    "items": []
+  },
+  "player": {
+    "sheckles": 0.0
+  }
+}

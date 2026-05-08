@@ -20,7 +20,7 @@ target_include_directories(GrowAGardenTests PRIVATE
 )
 
 # Link Google Test and SFML
-target_link_libraries(GrowAGardenTests PRIVATE GTest::gtest GTest::gtest_main SFML::Graphics SFML::Window SFML::Audio SFML::System)
+target_link_libraries(GrowAGardenTests PRIVATE GTest::gtest GTest::gtest_main SFML::Graphics SFML::Window SFML::Audio SFML::System nlohmann_json::nlohmann_json)
 
 include(GoogleTest)
 gtest_discover_tests(GrowAGardenTests)
@@ -34,5 +34,5 @@ target_include_directories(GrowAGardenIntegrationTests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-target_link_libraries(GrowAGardenIntegrationTests PRIVATE GTest::gtest GTest::gtest_main SFML::Graphics SFML::Window SFML::Audio SFML::System)
+target_link_libraries(GrowAGardenIntegrationTests PRIVATE GTest::gtest GTest::gtest_main SFML::Graphics SFML::Window SFML::Audio SFML::System nlohmann_json::nlohmann_json)
 gtest_discover_tests(GrowAGardenIntegrationTests)

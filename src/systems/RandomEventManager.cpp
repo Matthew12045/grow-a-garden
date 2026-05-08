@@ -1,26 +1,31 @@
 #include "RandomEventManager.h"
-#include <cstdlib>
+#include "RandomEvent.h"
+#include "../world/Garden.h"
+#include "../core/Player.h"
 
-RandomEventManager::RandomEventManager(float triggerProb, int cooldownTicks)
-    : triggerProbability_(triggerProb), cooldownTicks_(cooldownTicks), lastTriggeredTick_(-cooldownTicks) {}
+// Constants for easy tuning
+static constexpr float TRIGGER_INTERVAL = 60.0f;  // fire every 60 seconds of real time
 
-void RandomEventManager::addEvent(std::unique_ptr<RandomEvent> event) {
+RandomEventManager::RandomEventManager()
+    : rng_(std::random_device{}()) {}
+
+void RandomEventManager::registerEvent(std::unique_ptr<RandomEvent> event) {
     if (event) {
         events_.push_back(std::move(event));
     }
 }
 
-void RandomEventManager::checkAndTrigger(int tick, Garden& garden, Player& player) {
+void RandomEventManager::update(float dt, Garden& garden, Player& player) {
     if (events_.empty()) return;
 
-    if (tick - lastTriggeredTick_ >= cooldownTicks_) {
-        // Roll dice
-        float roll = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-        if (roll <= triggerProbability_) {
-            // Pick random event
-            int index = rand() % events_.size();
-            events_[index]->trigger(garden, player);
-            lastTriggeredTick_ = tick;
-        }
+    elapsedTime_ += dt;
+
+    while (elapsedTime_ >= TRIGGER_INTERVAL) {
+        elapsedTime_ -= TRIGGER_INTERVAL;
+
+        // Pick a random event from the registered list
+        std::uniform_int_distribution<std::size_t> dist(0, events_.size() - 1);
+        std::size_t index = dist(rng_);
+        events_[index]->trigger(garden, player);
     }
 }

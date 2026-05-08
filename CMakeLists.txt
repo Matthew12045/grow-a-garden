@@ -24,6 +24,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SFML)
 
+# Download nlohmann/json (header-only)
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.2
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 # ── Include directories ──────────────────────────────────────────────────────
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -59,6 +67,7 @@ add_executable(GrowAGarden
 )
 target_link_libraries(GrowAGarden PRIVATE
     SFML::Graphics SFML::Window SFML::System SFML::Audio
+    nlohmann_json::nlohmann_json
 )
 
 # ── Copy assets ──────────────────────────────────────────────────────────────

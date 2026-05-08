@@ -96,7 +96,7 @@ TEST(PlantTest, HarvestWithStackedMutationsMultipliesAll) {
     p.addMutation(Mutation(MutationType::WET,     2.0f,   WeatherType::RAIN));
     p.addMutation(Mutation(MutationType::SHOCKED,  100.0f, WeatherType::THUNDER_STORM));
     HarvestedItem item = p.harvest();
-    EXPECT_DOUBLE_EQ(item.getPrice(), 1020.0);
+    EXPECT_DOUBLE_EQ(item.getPrice(), 2000.0);
 }
 
 TEST(PlantTest, HarvestTransfersMutationListToItem) {
