@@ -104,7 +104,7 @@ TEST(RandomEventManagerTest, RespectsTriggerIntervalDoesNotFireEarly) {
     auto event = std::make_unique<CountingEvent>();
     CountingEvent* raw = event.get();
 
-    RandomEventManager mgr;
+    RandomEventManager mgr(1.0f);
     mgr.registerEvent(std::move(event));
 
     Garden g(5, 5);
@@ -125,7 +125,7 @@ TEST(RandomEventManagerTest, FiresMultipleTimesAfterIntervalElapses) {
     auto event = std::make_unique<CountingEvent>();
     CountingEvent* raw = event.get();
 
-    RandomEventManager mgr;
+    RandomEventManager mgr(1.0f);
     mgr.registerEvent(std::move(event));
 
     Garden g(5, 5);

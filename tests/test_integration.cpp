@@ -386,7 +386,7 @@ TEST(Integration_RandomEventManager, RaccoonFiredByManagerStealsCrops) {
 
     int before = countOccupied(garden);
 
-    RandomEventManager mgr;
+    RandomEventManager mgr(1.0f);
     mgr.registerEvent(std::make_unique<RaccoonEvent>(5));
     mgr.update(61.0f, garden, player);  // 61 seconds triggers one event
 
@@ -398,7 +398,7 @@ TEST(Integration_RandomEventManager, TriggerIntervalPreventsImmediateRepeat) {
     Player player;
     fillGardenWithCarrots(garden);
 
-    RandomEventManager mgr;
+    RandomEventManager mgr(1.0f);
     mgr.registerEvent(std::make_unique<RaccoonEvent>(1));
 
     mgr.update(61.0f, garden, player);  // fires once
