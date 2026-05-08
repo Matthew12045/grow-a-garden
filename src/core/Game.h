@@ -22,6 +22,7 @@ private:
     // AudioManager audioManager_;
     RandomEventManager randEventMgr_;
     long lastSaveTimestamp_;
+    bool loadedSave_;
 
 public:
     Game();
@@ -31,6 +32,7 @@ public:
     void saveGame();
     void loadGame();
     void processOfflineProgress();
+    bool hasLoadedSave() const { return loadedSave_; }
 
     // Getters for testing/access
     TickSystem& getTickSystem() { return tickSystem_; }

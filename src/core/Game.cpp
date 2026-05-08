@@ -34,7 +34,8 @@ Game::Game()
       garden_(20, 20),
       weatherSystem_(),
       player_(),
-      lastSaveTimestamp_(0) {
+      lastSaveTimestamp_(0),
+      loadedSave_(false) {
     // Register random events
     randEventMgr_.registerEvent(std::make_unique<RaccoonEvent>(2));
     
@@ -109,6 +110,7 @@ void Game::saveGame() {
         // Update save timestamp
         auto now = std::chrono::system_clock::now();
         lastSaveTimestamp_ = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+        loadedSave_ = true;
         std::cout << "Game saved to save.json. Timestamp: " << lastSaveTimestamp_ << std::endl;
         
     } catch (const std::exception& e) {
@@ -118,6 +120,7 @@ void Game::saveGame() {
 
 void Game::loadGame() {
     try {
+        loadedSave_ = false;
         std::ifstream inFile("save.json");
         if (!inFile.is_open()) {
             // File doesn't exist, no previous save to load
@@ -191,10 +194,12 @@ void Game::loadGame() {
         // Update save timestamp to current
         auto now = std::chrono::system_clock::now();
         lastSaveTimestamp_ = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+        loadedSave_ = true;
         
         std::cout << "Game loaded from save.json" << std::endl;
         
     } catch (const std::exception& e) {
+        loadedSave_ = false;
         std::cerr << "Error loading game: " << e.what() << std::endl;
     }
 }

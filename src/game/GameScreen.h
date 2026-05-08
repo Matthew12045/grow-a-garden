@@ -61,6 +61,11 @@ private:
     std::string equippedTool_ = "";
 
     void setupShop();
+    void addStartingItems();
+    bool isInitializedSave();
+    bool needsStarterRescue();
+    void saveSession();
+    void loadHarvestBasket();
 
     void handleEvent(const sf::Event& ev);
     void onMouseClick(sf::Vector2f pos);

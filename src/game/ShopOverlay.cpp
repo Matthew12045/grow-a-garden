@@ -96,7 +96,7 @@ void ShopOverlay::draw(sf::Vector2f mouse) {
         tbar.setFillColor({38,22,8});
         window_.draw(tbar);
 
-        for (float cx : {SHOP_X+24.f, SHOP_X+SHOP_W-38.f}) {
+        for (float cx : {SHOP_X+24.f}) {
             sf::CircleShape coin(14.f);
             coin.setFillColor(Pal::GOLD);
             coin.setPosition({cx, SHOP_Y+17.f});
