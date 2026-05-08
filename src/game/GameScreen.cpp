@@ -436,12 +436,12 @@ void GameScreen::drawCloud(float cx, float cy, float scale) {
 void GameScreen::drawTopUI() {
     // Day
     {
-        drawPxPanel({18.f, 14.f}, {210.f, 54.f});
+        DrawUtils::drawPxPanel(window_, font_, {18.f, 14.f}, {210.f, 54.f});
         sf::CircleShape sun(13.f);
         sun.setFillColor({255, 210, 40});
         sun.setPosition({30.f, 23.f});
         window_.draw(sun);
-        auto t = makeText("DAY " + std::to_string(dayCount_), 24, Pal::DARKTEXT);
+        auto t = DrawUtils::makeText(font_, "DAY " + std::to_string(dayCount_), 24, Pal::DARKTEXT);
         t.setPosition({70.f, 27.f});
         window_.draw(t);
     }
@@ -449,17 +449,17 @@ void GameScreen::drawTopUI() {
     {
         sf::Vector2f sz{240.f, 54.f};
         sf::Vector2f pos{1920.f - sz.x - 18.f, 14.f};
-        drawPxPanel(pos, sz);
+        DrawUtils::drawPxPanel(window_, font_, pos, sz);
         sf::CircleShape coin(13.f);
         coin.setFillColor(Pal::GOLD);
         coin.setPosition({pos.x + 14.f, pos.y + 14.f});
         window_.draw(coin);
-        auto dlr = makeText("$", 15, Pal::DARKTEXT);
+        auto dlr = DrawUtils::makeText(font_, "$", 15, Pal::DARKTEXT);
         dlr.setPosition({pos.x + 19.f, pos.y + 17.f});
         window_.draw(dlr);
         std::ostringstream ss;
         ss << std::fixed << std::setprecision(0) << game_.getPlayer().getSheckles() << " S";
-        auto t = makeText(ss.str(), 26, Pal::GOLD);
+        auto t = DrawUtils::makeText(font_, ss.str(), 26, Pal::GOLD);
         auto lb = t.getLocalBounds();
         t.setPosition({pos.x + sz.x - lb.size.x - 14.f, pos.y + 14.f});
         window_.draw(t);
@@ -469,8 +469,8 @@ void GameScreen::drawTopUI() {
         static const char* WX[] = {"Summer","Rain","Frost","Thunder","Meteors"};
         WeatherType wt = game_.getWeatherSystem().getCurrentWeather();
         std::string ws = std::string(WX[(int)wt]);
-        drawPxPanel({960.f - 160.f, 16.f}, {320.f, 46.f});
-        auto t = makeText(ws, 20, Pal::DARKTEXT);
+        DrawUtils::drawPxPanel(window_, font_, {960.f - 160.f, 16.f}, {320.f, 46.f});
+        auto t = DrawUtils::makeText(font_, ws, 20, Pal::DARKTEXT);
         auto lb = t.getLocalBounds();
         t.setPosition({960.f - lb.size.x/2.f, 28.f});
         window_.draw(t);
@@ -479,9 +479,9 @@ void GameScreen::drawTopUI() {
     if (!equippedTool_.empty()) {
         const auto* def = findItem(equippedTool_);
         std::string label = "Tool: " + (def ? def->cropName : equippedTool_) + "  [ESC=close]";
-        drawPxPanel({BOARD_X, 14.f}, {320.f, 46.f},
+        DrawUtils::drawPxPanel(window_, font_, {BOARD_X, 14.f}, {320.f, 46.f},
                     Pal::FRAME_MID, {40,80,160}, {80,140,220});
-        auto t = makeText(label, 18, { 80,160,255 });
+        auto t = DrawUtils::makeText(font_, label, 18, { 80,160,255 });
         t.setPosition({BOARD_X + 10.f, 27.f});
         window_.draw(t);
     }
@@ -799,7 +799,7 @@ void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
     float startX = BOARD_X + (barW - totalW) / 2.f;
     float slotY  = INV_BAR_Y + (INV_BAR_H - slotSz) / 2.f;
 
-    drawPxPanel({BOARD_X, INV_BAR_Y}, {BOARD_W, INV_BAR_H});
+    DrawUtils::drawPxPanel(window_, font_, {BOARD_X, INV_BAR_Y}, {BOARD_W, INV_BAR_H});
 
     for (int i = 0; i < n; ++i) {
         float sx  = startX + i * (slotSz + 6.f);
@@ -831,22 +831,22 @@ void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
             hv.setFillColor({220,110,25});
             window_.draw(hv);
             if (sl.qty > 0) {
-                auto cnt = makeText(std::to_string(sl.qty), 16, Pal::GOLD);
+                auto cnt = DrawUtils::makeText(font_, std::to_string(sl.qty), 16, Pal::GOLD);
                 cnt.setPosition({sx+slotSz-20.f, slotY+slotSz-22.f});
                 window_.draw(cnt);
                 if (hov) {
-                    auto tip = makeText("Click: SELL ALL", 17, Pal::GOLD);
+                    auto tip = DrawUtils::makeText(font_, "Click: SELL ALL", 17, Pal::GOLD);
                     tip.setPosition({sx-20.f, slotY-26.f});
                     window_.draw(tip);
                 }
             }
-            auto lbl = makeText("SELL", 12, Pal::CREAM);
+            auto lbl = DrawUtils::makeText(font_, "SELL", 12, Pal::CREAM);
             lbl.setPosition({sx+slotSz/2.f-14.f, slotY+slotSz-18.f});
             window_.draw(lbl);
         } else {
             const auto* def = findItem(sl.name);
             if (def) drawCropIcon(*def, {sx+slotSz/2.f, slotY+slotSz*0.46f}, slotSz*0.72f);
-            auto cnt = makeText(std::to_string(sl.qty), 15, Pal::GOLD);
+            auto cnt = DrawUtils::makeText(font_, std::to_string(sl.qty), 15, Pal::GOLD);
             cnt.setPosition({sx+slotSz-20.f, slotY+slotSz-22.f});
             window_.draw(cnt);
         }
@@ -871,14 +871,14 @@ void GameScreen::drawShopTabButton(sf::Vector2f mouse) {
     float bsz = INV_BAR_H;
     bool  hov = (mouse.x>=bx && mouse.x<bx+bsz && mouse.y>=by && mouse.y<by+bsz);
 
-    drawPxPanel({bx,by},{bsz,bsz});
+    DrawUtils::drawPxPanel(window_, font_, {bx,by},{bsz,bsz});
     for (int i=0;i<3;++i){
         sf::RectangleShape shelf({bsz-20.f,7.f});
         shelf.setPosition({bx+10.f, by+12.f+i*18.f});
         shelf.setFillColor(hov ? Pal::GOLD : Pal::CREAM);
         window_.draw(shelf);
     }
-    auto lbl = makeText("SHOP",14, hov ? Pal::GOLD : Pal::DARKTEXT);
+    auto lbl = DrawUtils::makeText(font_, "SHOP",14, hov ? Pal::GOLD : Pal::DARKTEXT);
     lbl.setPosition({bx+bsz/2.f-18.f, by+bsz-20.f});
     window_.draw(lbl);
 }
@@ -893,7 +893,7 @@ void GameScreen::drawShopOverlay(sf::Vector2f mouse) {
     window_.draw(dim);
 
     // Main panel
-    drawPxPanel({SHOP_X, SHOP_Y},{SHOP_W, SHOP_H},
+    DrawUtils::drawPxPanel(window_, font_, {SHOP_X, SHOP_Y},{SHOP_W, SHOP_H},
                 Pal::SHOP_BG, {25,14,4}, {75,48,18});
 
     // Title bar
@@ -909,12 +909,12 @@ void GameScreen::drawShopOverlay(sf::Vector2f mouse) {
             coin.setFillColor(Pal::GOLD);
             coin.setPosition({cx, SHOP_Y+17.f});
             window_.draw(coin);
-            auto ds = makeText("$", 15, Pal::DARKTEXT);
+            auto ds = DrawUtils::makeText(font_, "$", 15, Pal::DARKTEXT);
             ds.setPosition({cx+5.f, SHOP_Y+20.f});
             window_.draw(ds);
         }
 
-        auto t = makeText("SHOP", 36, Pal::GOLD);
+        auto t = DrawUtils::makeText(font_, "SHOP", 36, Pal::GOLD);
         auto lb = t.getLocalBounds();
         t.setPosition({SHOP_X + SHOP_W/2.f - lb.size.x/2.f, SHOP_Y + 10.f});
         window_.draw(t);
@@ -931,7 +931,7 @@ void GameScreen::drawShopOverlay(sf::Vector2f mouse) {
         chl.setPosition({cx,cy});
         chl.setFillColor({255,255,255,50});
         window_.draw(chl);
-        auto xb = makeText("X", 26, Pal::CREAM);
+        auto xb = DrawUtils::makeText(font_, "X", 26, Pal::CREAM);
         xb.setPosition({cx+11.f, cy+7.f});
         window_.draw(xb);
     }
@@ -958,12 +958,12 @@ void GameScreen::drawShopOverlay(sf::Vector2f mouse) {
             window_.draw(ul);
         }
         // Badge showing item count on SELL tab
-        auto tl = makeText(tabs[t], 22, act ? Pal::GOLD : Pal::CREAM);
+        auto tl = DrawUtils::makeText(font_, tabs[t], 22, act ? Pal::GOLD : Pal::CREAM);
         auto lb = tl.getLocalBounds();
         tl.setPosition({tx+(tabW-lb.size.x)/2.f, tabY+10.f});
         window_.draw(tl);
         if (t == 2 && !harvestBasket_.empty()) {
-            auto badge = makeText(std::to_string(harvestBasket_.size()), 14, Pal::GOLD);
+            auto badge = DrawUtils::makeText(font_, std::to_string(harvestBasket_.size()), 14, Pal::GOLD);
             badge.setPosition({tx+tabW-22.f, tabY+4.f});
             window_.draw(badge);
         }
@@ -1045,19 +1045,19 @@ void GameScreen::drawSeedCard(const ShopItemDef& def, sf::FloatRect b, sf::Vecto
     float ty    = b.position.y + iconSz + 6.f;
     float textW = b.size.x - 8.f;
 
-    auto name = makeText(def.cropName, 19, owned ? Pal::GOLD : Pal::CREAM);
+    auto name = DrawUtils::makeText(font_, def.cropName, 19, owned ? Pal::GOLD : Pal::CREAM);
     auto nlb  = name.getLocalBounds();
     name.setPosition({b.position.x + (textW - nlb.size.x)/2.f + 4.f, ty});
     window_.draw(name);
 
-    auto desc = makeText(def.description, 13, {180,150,110});
+    auto desc = DrawUtils::makeText(font_, def.description, 13, {180,150,110});
     auto dlb  = desc.getLocalBounds();
     desc.setPosition({b.position.x + (textW - dlb.size.x)/2.f + 4.f, ty + 23.f});
     window_.draw(desc);
 
     std::ostringstream stats;
     stats << "Sells " << (int)def.sellPrice << " S";
-    auto st = makeText(stats.str(), 13, {150,210,130});
+    auto st = DrawUtils::makeText(font_, stats.str(), 13, {150,210,130});
     auto slb = st.getLocalBounds();
     st.setPosition({b.position.x + (textW - slb.size.x)/2.f + 4.f, ty + 42.f});
     window_.draw(st);
@@ -1069,21 +1069,21 @@ void GameScreen::drawSeedCard(const ShopItemDef& def, sf::FloatRect b, sf::Vecto
     footer.setFillColor({30,18,6});
     window_.draw(footer);
 
-    auto price = makeText(std::to_string((int)def.buyPrice) + " S", 18, Pal::GOLD);
+    auto price = DrawUtils::makeText(font_, std::to_string((int)def.buyPrice) + " S", 18, Pal::GOLD);
     price.setPosition({b.position.x + 8.f, footerY + 7.f});
     window_.draw(price);
 
     float btnW = 68.f, btnH = 26.f;
     sf::FloatRect btnR{{b.position.x+b.size.x-btnW-6.f, footerY+4.f},{btnW,btnH}};
     bool canAfford = (game_.getPlayer().getSheckles() >= def.buyPrice);
-    drawPxButton(btnR, "BUY",
+    DrawUtils::drawPxButton(window_, font_, btnR, "BUY",
                  canAfford ? Pal::BTN_BUY : sf::Color{80,80,80},
                  canAfford ? Pal::BTN_BHOV : sf::Color{80,80,80},
                  mouse, 18);
 
     if (owned) {
         int q = game_.getPlayer().getInventory().getQuantity(def.name);
-        auto ob = makeText("x"+std::to_string(q), 14, Pal::GOLD);
+        auto ob = DrawUtils::makeText(font_, "x"+std::to_string(q), 14, Pal::GOLD);
         ob.setPosition({b.position.x+4.f, b.position.y+4.f});
         window_.draw(ob);
     }
@@ -1119,34 +1119,34 @@ void GameScreen::drawToolCard(const ShopItemDef& def, sf::FloatRect b, sf::Vecto
     float tx = b.position.x + iconSz + 16.f;
     float ty = b.position.y + 20.f;
 
-    auto name = makeText(def.cropName, 26, Pal::GOLD);
+    auto name = DrawUtils::makeText(font_, def.cropName, 26, Pal::GOLD);
     name.setPosition({tx, ty});
     window_.draw(name);
 
-    auto desc = makeText(def.description, 18, Pal::CREAM);
+    auto desc = DrawUtils::makeText(font_, def.description, 18, Pal::CREAM);
     desc.setPosition({tx, ty+38.f});
     window_.draw(desc);
 
-    auto bst = makeText("Boost: +" + std::to_string(def.toolBoost) + " growth ticks per use", 16, {150,210,130});
+    auto bst = DrawUtils::makeText(font_, "Boost: +" + std::to_string(def.toolBoost) + " growth ticks per use", 16, {150,210,130});
     bst.setPosition({tx, ty+70.f});
     window_.draw(bst);
 
     float footerY = b.position.y + b.size.y - 48.f;
-    auto  pr      = makeText(std::to_string((int)def.buyPrice)+" S", 22, Pal::GOLD);
+    auto  pr      = DrawUtils::makeText(font_, std::to_string((int)def.buyPrice)+" S", 22, Pal::GOLD);
     pr.setPosition({tx, footerY});
     window_.draw(pr);
 
     float btnW=110.f, btnH=34.f;
     sf::FloatRect btnR{{b.position.x+b.size.x-btnW-10.f, footerY-4.f},{btnW,btnH}};
     bool canAfford = (game_.getPlayer().getSheckles()>=def.buyPrice);
-    drawPxButton(btnR,"BUY",
+    DrawUtils::drawPxButton(window_, font_, btnR,"BUY",
                  canAfford?Pal::BTN_BUY:sf::Color{80,80,80},
                  canAfford?Pal::BTN_BHOV:sf::Color{80,80,80},
                  mouse, 20);
 
     if (owned) {
         int q = game_.getPlayer().getInventory().getQuantity(def.name);
-        auto ob = makeText("x"+std::to_string(q)+" owned", 16, Pal::GOLD);
+        auto ob = DrawUtils::makeText(font_, "x"+std::to_string(q)+" owned", 16, Pal::GOLD);
         ob.setPosition({b.position.x+4.f, b.position.y+4.f});
         window_.draw(ob);
     }
@@ -1172,11 +1172,11 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
         tri.setPoint(2,{cx,           cy+ico*0.7f});
         tri.setFillColor({80,50,20,120});
         window_.draw(tri);
-        auto msg = makeText("Your harvest basket is empty!", 28, {140,100,55});
+        auto msg = DrawUtils::makeText(font_, "Your harvest basket is empty!", 28, {140,100,55});
         auto lb  = msg.getLocalBounds();
         msg.setPosition({cx - lb.size.x/2.f, cy + ico*0.8f});
         window_.draw(msg);
-        auto sub = makeText("Harvest fully-grown crops from your garden first.", 20, {100,70,35});
+        auto sub = DrawUtils::makeText(font_, "Harvest fully-grown crops from your garden first.", 20, {100,70,35});
         auto lb2 = sub.getLocalBounds();
         sub.setPosition({cx - lb2.size.x/2.f, cy + ico*0.8f + 40.f});
         window_.draw(sub);
@@ -1199,7 +1199,7 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
     float total = 0.f;
     for (const auto& e : harvestBasket_) total += (float)e.item.getPrice();
 
-    auto totalTxt = makeText("Basket: " + std::to_string((int)harvestBasket_.size()) +
+    auto totalTxt = DrawUtils::makeText(font_, "Basket: " + std::to_string((int)harvestBasket_.size()) +
                              " items  |  Total: " +
                              [&]{ std::ostringstream s;
                                   s << std::fixed << std::setprecision(0) << total;
@@ -1211,7 +1211,7 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
     // SELL ALL button (right side of header)
     float saW = 160.f, saH = 36.f;
     sf::FloatRect saBtn{{cardsX + cardsW - saW - 10.f, cardsY + 8.f},{saW, saH}};
-    drawPxButton(saBtn, "SELL ALL",
+    DrawUtils::drawPxButton(window_, font_, saBtn, "SELL ALL",
                  {170, 110, 20}, {210, 140, 25}, mouse, 20);
 
     // ── Item grid ─────────────────────────────────────────────────────
@@ -1266,12 +1266,12 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
         float ty = b.position.y + 12.f;
 
         // Crop name
-        auto nameT = makeText(entry.cropName, 20, hov ? Pal::GOLD : Pal::CREAM);
+        auto nameT = DrawUtils::makeText(font_, entry.cropName, 20, hov ? Pal::GOLD : Pal::CREAM);
         nameT.setPosition({tx, ty});
         window_.draw(nameT);
 
         if (count > 1) {
-            auto countT = makeText("x" + std::to_string(count), 15, Pal::GOLD);
+            auto countT = DrawUtils::makeText(font_, "x" + std::to_string(count), 15, Pal::GOLD);
             countT.setPosition({tx + tw - 24.f, ty - 2.f});
             window_.draw(countT);
         }
@@ -1279,20 +1279,20 @@ void GameScreen::drawSellPage(sf::Vector2f mouse) {
         // Price
         std::ostringstream ps;
         ps << std::fixed << std::setprecision(0) << price << " S";
-        auto priceT = makeText(ps.str(), 18, {150, 210, 130});
+        auto priceT = DrawUtils::makeText(font_, ps.str(), 18, {150, 210, 130});
         priceT.setPosition({tx, ty + 26.f});
         window_.draw(priceT);
 
         // Mutation badge
         if (hasMut) {
-            auto mutT = makeText(entry.item.getMutations(), 13, Pal::MUTATION);
+            auto mutT = DrawUtils::makeText(font_, entry.item.getMutations(), 13, Pal::MUTATION);
             mutT.setPosition({tx, ty + 50.f});
             window_.draw(mutT);
         }
 
         // SELL button — bottom-right of card
         sf::FloatRect btnR = getSellButtonRect(b, iconSz);
-        drawPxButton(btnR, count > 1 ? ("SELL x" + std::to_string(count)) : "SELL",
+        DrawUtils::drawPxButton(window_, font_, btnR, count > 1 ? ("SELL x" + std::to_string(count)) : "SELL",
                      {170, 110, 20}, {215, 145, 28},
                      mouse, 16);
     }
@@ -1414,7 +1414,7 @@ void GameScreen::drawStatus() {
     float alpha=std::min(1.f, statusTimer_/0.4f);
     sf::Color bg{30,14,4,(uint8_t)(alpha*210)};
     sf::Color fg{255,228,100,(uint8_t)(alpha*255)};
-    auto t=makeText(statusMsg_,22,fg);
+    auto t=DrawUtils::makeText(font_, statusMsg_,22,fg);
     auto lb=t.getLocalBounds();
     float tw=lb.size.x+32.f;
     float tx=960.f-tw/2.f, ty=INV_BAR_Y-38.f;
@@ -1424,69 +1424,4 @@ void GameScreen::drawStatus() {
     window_.draw(pill);
     t.setPosition({tx+16.f,ty+4.f});
     window_.draw(t);
-}
-
-// ─────────────────────────────────────────────────────────────────────
-//  UI helpers
-// ─────────────────────────────────────────────────────────────────────
-void GameScreen::drawPxPanel(sf::Vector2f pos, sf::Vector2f sz,
-                              sf::Color mid, sf::Color dark, sf::Color lite) {
-    sf::RectangleShape outer(sz + sf::Vector2f{6.f,6.f});
-    outer.setPosition(pos - sf::Vector2f{3.f,3.f});
-    outer.setFillColor(dark);
-    window_.draw(outer);
-
-    sf::RectangleShape body(sz);
-    body.setPosition(pos);
-    body.setFillColor(mid);
-    window_.draw(body);
-
-    sf::RectangleShape hl({sz.x,4.f});
-    hl.setPosition(pos);
-    hl.setFillColor(lite);
-    window_.draw(hl);
-    sf::RectangleShape vl({4.f,sz.y});
-    vl.setPosition(pos);
-    vl.setFillColor(lite);
-    window_.draw(vl);
-
-    sf::RectangleShape sb({sz.x,4.f});
-    sb.setPosition({pos.x, pos.y+sz.y-4.f});
-    sb.setFillColor(dark);
-    window_.draw(sb);
-    sf::RectangleShape sr({4.f,sz.y});
-    sr.setPosition({pos.x+sz.x-4.f, pos.y});
-    sr.setFillColor(dark);
-    window_.draw(sr);
-}
-
-void GameScreen::drawPxButton(sf::FloatRect b, const std::string& label,
-                               sf::Color col, sf::Color hov,
-                               sf::Vector2f mouse, unsigned fs) {
-    bool h = b.contains(mouse);
-    sf::RectangleShape bg(b.size);
-    bg.setPosition(b.position);
-    bg.setFillColor(h ? hov : col);
-    window_.draw(bg);
-    sf::RectangleShape hl({b.size.x,2.f});
-    hl.setPosition(b.position);
-    hl.setFillColor({255,255,255,60});
-    window_.draw(hl);
-    auto t=makeText(label, fs, Pal::CREAM);
-    auto lb=t.getLocalBounds();
-    t.setPosition({b.position.x+(b.size.x-lb.size.x)/2.f,
-                   b.position.y+(b.size.y-lb.size.y)/2.f-2.f});
-    window_.draw(t);
-}
-
-sf::Text GameScreen::makeText(const std::string& s, unsigned sz, sf::Color col) const {
-    sf::Text t(font_, s, sz);
-    t.setFillColor(col);
-    return t;
-}
-
-void GameScreen::centreText(sf::Text& t, sf::FloatRect area) {
-    auto lb=t.getLocalBounds();
-    t.setPosition({area.position.x+(area.size.x-lb.size.x)/2.f,
-                   area.position.y+(area.size.y-lb.size.y)/2.f-2.f});
 }
