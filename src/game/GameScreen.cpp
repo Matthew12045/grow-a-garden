@@ -84,10 +84,9 @@ sf::FloatRect inventoryPanelRect() {
 //  Constructor
 // ─────────────────────────────────────────────────────────────────────
 GameScreen::GameScreen(sf::RenderWindow& window, sf::Font& font)
-    : window_(window), font_(font), game_(), shop_(), shopOverlay_(window_, font_, game_, harvestBasket_, catalogue_, *this)
+    : window_(window), font_(font), game_(), shop_(), catalogue_(makeShopCatalogue()),
+      shopOverlay_(window_, font_, game_, harvestBasket_, catalogue_, *this)
 {
-    catalogue_ = makeShopCatalogue();
-
     // 2 ticks/sec
     game_.getTickSystem().setTickRate(0.5f);
 
@@ -626,7 +625,7 @@ void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
         float slotSz = slot.size.x;
         bool  hov = slot.contains(mouse);
         bool isMenuSlot = (i == HOTBAR_ITEM_SLOTS);
-        bool isDraggingThis = inventoryOpen_ && draggedInventorySlot_ == i;
+        bool isDraggingThis = inventoryOpen_ && inventoryDrag_ && inventoryDrag_->slot == i;
         bool hasItem = !isMenuSlot && i < static_cast<int>(inventorySlots_.size()) &&
                        !inventorySlots_[i].empty() && !isDraggingThis;
         std::string name = hasItem ? inventorySlots_[i] : "";
@@ -667,9 +666,9 @@ void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
         }
     }
 
-    if (inventoryOpen_ && !draggedInventoryItem_.empty()) {
+    if (inventoryOpen_ && inventoryDrag_ && inventoryDrag_->isValid()) {
         sf::Vector2f mouse = window_.mapPixelToCoords(sf::Mouse::getPosition(window_));
-        const auto* def = findItem(draggedInventoryItem_);
+        const auto* def = findItem(inventoryDrag_->item);
         sf::RectangleShape ghost({HOTBAR_SLOT, HOTBAR_SLOT});
         ghost.setOrigin({HOTBAR_SLOT / 2.f, HOTBAR_SLOT / 2.f});
         ghost.setPosition(mouse);
@@ -679,7 +678,7 @@ void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
         window_.draw(ghost);
 
         if (def) CropRenderer::drawCropIcon(window_, font_, *def, mouse, HOTBAR_SLOT * 0.72f);
-        int qty = game_.getPlayer().getInventory().getQuantity(draggedInventoryItem_);
+        int qty = game_.getPlayer().getInventory().getQuantity(inventoryDrag_->item);
         auto cnt = DrawUtils::makeText(font_, std::to_string(qty), 13, Pal::GOLD);
         cnt.setPosition({mouse.x + HOTBAR_SLOT / 2.f - 18.f, mouse.y + HOTBAR_SLOT / 2.f - 20.f});
         window_.draw(cnt);
@@ -712,7 +711,7 @@ void GameScreen::drawInventoryOverlay(sf::Vector2f mouse) {
         float sx = slot.position.x;
         float sy = slot.position.y;
         bool hov = slot.contains(mouse);
-        bool isDraggingThis = draggedInventorySlot_ == itemSlot;
+        bool isDraggingThis = inventoryDrag_ && inventoryDrag_->slot == itemSlot;
         bool hasItem = itemSlot < static_cast<int>(inventorySlots_.size()) &&
                        !inventorySlots_[itemSlot].empty() && !isDraggingThis;
         std::string name = hasItem ? inventorySlots_[itemSlot] : "";
@@ -802,22 +801,28 @@ void GameScreen::beginInventoryDrag(sf::Vector2f pos) {
         return;
     }
 
-    draggedInventorySlot_ = slot;
-    draggedInventoryItem_ = inventorySlots_[slot];
+    inventoryDrag_ = InventoryDragState{slot, inventorySlots_[slot]};
 }
 
 void GameScreen::finishInventoryDrag(sf::Vector2f pos) {
-    if (draggedInventorySlot_ < 0 || draggedInventoryItem_.empty()) {
+    if (!inventoryDrag_) {
+        handleInventoryOverlayClick(pos);
+        return;
+    }
+
+    InventoryDragState drag = *inventoryDrag_;
+    if (!drag.isValid()) {
+        cancelInventoryDrag();
         handleInventoryOverlayClick(pos);
         return;
     }
 
     int target = inventorySlotAt(pos);
     if (target >= 0 && target < static_cast<int>(inventorySlots_.size())) {
-        if (target == draggedInventorySlot_) {
-            selectInventoryItem(draggedInventoryItem_);
+        if (target == drag.slot) {
+            selectInventoryItem(drag.item);
         } else {
-            std::swap(inventorySlots_[draggedInventorySlot_], inventorySlots_[target]);
+            std::swap(inventorySlots_[drag.slot], inventorySlots_[target]);
         }
     }
 
@@ -825,8 +830,7 @@ void GameScreen::finishInventoryDrag(sf::Vector2f pos) {
 }
 
 void GameScreen::cancelInventoryDrag() {
-    draggedInventorySlot_ = -1;
-    draggedInventoryItem_.clear();
+    inventoryDrag_.reset();
 }
 
 // ─────────────────────────────────────────────────────────────────────

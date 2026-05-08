@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -48,8 +49,13 @@ private:
     bool        fastMode_    = false;
     bool        inventoryOpen_ = false;
     std::vector<std::string> inventorySlots_;
-    int         draggedInventorySlot_ = -1;
-    std::string draggedInventoryItem_;
+    struct InventoryDragState {
+        int slot = -1;
+        std::string item;
+
+        bool isValid() const { return slot >= 0 && !item.empty(); }
+    };
+    std::optional<InventoryDragState> inventoryDrag_;
 
     std::string selectedSeed_ = "Carrot Seed";
     std::string equippedTool_ = "";
