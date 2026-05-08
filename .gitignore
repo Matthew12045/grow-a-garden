@@ -39,3 +39,4 @@ progress.zip
 build-win/
 cmake/
 .vs/
+save.json

@@ -1,7 +1,13 @@
 #include "TitleScreen.h"
 #include <cmath>
+#include <filesystem>
 #include <random>
 #include <iostream>
+#include <system_error>
+
+namespace {
+constexpr const char* SAVE_FILE = "save.json";
+}
 
 TitleScreen::TitleScreen(const std::string& backgroundPath)
         : currentState(State::FadingIn),
@@ -254,8 +260,28 @@ void TitleScreen::update(float deltaTime, const sf::Vector2f& mousePos, bool mou
 }
 
 void TitleScreen::resetGame() {
-    // Placeholder: reset saved game state. For now, print and set flag.
-    std::cout << "Game reset!" << std::endl;
+    std::error_code ec;
+    const bool saveExists = std::filesystem::exists(SAVE_FILE, ec);
+    if (ec) {
+        std::cerr << "Error checking save file for reset: " << ec.message() << std::endl;
+        shouldResetGame = false;
+        return;
+    }
+
+    if (saveExists && !std::filesystem::remove(SAVE_FILE, ec)) {
+        std::cerr << "Error resetting save file: "
+                  << (ec ? ec.message() : "could not remove save.json") << std::endl;
+        shouldResetGame = false;
+        return;
+    }
+
+    if (ec) {
+        std::cerr << "Error resetting save file: " << ec.message() << std::endl;
+        shouldResetGame = false;
+        return;
+    }
+
+    std::cout << "Game reset. Deleted save.json." << std::endl;
     shouldResetGame = true;
 }
 

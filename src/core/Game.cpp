@@ -31,7 +31,7 @@ const ShopItemDef* findDefByCropName(const std::vector<ShopItemDef>& catalogue, 
 
 Game::Game()
     : tickSystem_(1.0f), // 1 tick per second by default
-      garden_(20, 20),
+      garden_(5, 4),
       weatherSystem_(),
       player_(),
       lastSaveTimestamp_(0),
