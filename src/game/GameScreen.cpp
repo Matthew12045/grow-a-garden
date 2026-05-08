@@ -101,27 +101,24 @@ void GameScreen::onMouseClick(sf::Vector2f pos) {
 
     // Inventory bar slots
     {
-        struct Slot { std::string name; bool isHarvest; };
+        struct Slot { std::string name; };
         std::vector<Slot> slots;
         const auto& items = game_.getPlayer().getInventory().getItems();
         for (const auto& item : items) {
-            slots.push_back({item->getName(), false});
+            slots.push_back({item->getName()});
         }
-        slots.push_back({"__harvest__", true});
 
         int   n      = (int)slots.size();
-        float barW   = BOARD_W;
-        float slotSz = std::min(68.f, (barW - 8.f) / (float)n - 6.f);
-        float totalW = n * (slotSz + 6.f) - 6.f;
-        float startX = BOARD_X + (barW - totalW) / 2.f;
-        float slotY  = INV_BAR_Y + (INV_BAR_H - slotSz) / 2.f;
+        if (n > 0) {
+            float barW   = BOARD_W;
+            float slotSz = std::min(68.f, (barW - 8.f) / (float)n - 6.f);
+            float totalW = n * (slotSz + 6.f) - 6.f;
+            float startX = BOARD_X + (barW - totalW) / 2.f;
+            float slotY  = INV_BAR_Y + (INV_BAR_H - slotSz) / 2.f;
 
-        for (int i = 0; i < n; ++i) {
-            float sx = startX + i * (slotSz + 6.f);
-            if (sf::FloatRect{{sx, slotY},{slotSz, slotSz}}.contains(pos)) {
-                if (slots[i].isHarvest) {
-                    shopOverlay_.open(2);   // jump straight to Sell tab
-                } else {
+            for (int i = 0; i < n; ++i) {
+                float sx = startX + i * (slotSz + 6.f);
+                if (sf::FloatRect{{sx, slotY},{slotSz, slotSz}}.contains(pos)) {
                     const auto* def = findItem(slots[i].name);
                     if (def && def->type == ShopItemType::SEED) {
                         selectedSeed_ = slots[i].name;
@@ -132,8 +129,8 @@ void GameScreen::onMouseClick(sf::Vector2f pos) {
                         selectedSeed_ = "";
                         setStatus("Equipped: " + def->cropName, 1.5f);
                     }
+                    return;
                 }
-                return;
             }
         }
     }
@@ -538,30 +535,30 @@ void GameScreen::drawCell(int gx, int gy, sf::Vector2f s, bool hov) {
 //  Inventory bar
 // ─────────────────────────────────────────────────────────────────────
 void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
-    struct Slot { std::string name; int qty; bool isHarvest; };
+    struct Slot { std::string name; int qty; };
     std::vector<Slot> slots;
     const auto& items = game_.getPlayer().getInventory().getItems();
     for (const auto& item : items) {
         int q = game_.getPlayer().getInventory().getQuantity(item->getName());
-        slots.push_back({item->getName(), q, false});
+        slots.push_back({item->getName(), q});
     }
-    slots.push_back({"__harvest__", (int)harvestBasket_.size(), true});
+    DrawUtils::drawPxPanel(window_, font_, {BOARD_X, INV_BAR_Y}, {BOARD_W, INV_BAR_H});
+
     int   n      = (int)slots.size();
+    if (n == 0) return;
+
     float barW   = BOARD_W;
     float slotSz = std::min(72.f, (barW - 8.f)/(float)n - 6.f);
     float totalW = n * (slotSz + 6.f) - 6.f;
     float startX = BOARD_X + (barW - totalW) / 2.f;
     float slotY  = INV_BAR_Y + (INV_BAR_H - slotSz) / 2.f;
 
-    DrawUtils::drawPxPanel(window_, font_, {BOARD_X, INV_BAR_Y}, {BOARD_W, INV_BAR_H});
-
     for (int i = 0; i < n; ++i) {
         float sx  = startX + i * (slotSz + 6.f);
         bool  hov = (mouse.x>=sx && mouse.x<sx+slotSz &&
                      mouse.y>=slotY && mouse.y<slotY+slotSz);
         const Slot& sl  = slots[i];
-        bool        sel = (!sl.isHarvest &&
-                           (sl.name == selectedSeed_ || sl.name == equippedTool_));
+        bool        sel = (sl.name == selectedSeed_ || sl.name == equippedTool_);
 
         // Slot bg
         sf::RectangleShape shadow({slotSz, slotSz});
@@ -575,35 +572,11 @@ void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
         fc.setFillColor(face);
         window_.draw(fc);
 
-        if (sl.isHarvest) {
-            // Harvest basket icon
-            float ico = slotSz * 0.42f;
-            sf::ConvexShape hv(3);
-            hv.setPoint(0,{sx+slotSz/2.f-ico*0.5f, slotY+slotSz/2.f-ico*0.3f});
-            hv.setPoint(1,{sx+slotSz/2.f+ico*0.5f, slotY+slotSz/2.f-ico*0.3f});
-            hv.setPoint(2,{sx+slotSz/2.f,           slotY+slotSz/2.f+ico*0.7f});
-            hv.setFillColor({220,110,25});
-            window_.draw(hv);
-            if (sl.qty > 0) {
-                auto cnt = DrawUtils::makeText(font_, std::to_string(sl.qty), 16, Pal::GOLD);
-                cnt.setPosition({sx+slotSz-20.f, slotY+slotSz-22.f});
-                window_.draw(cnt);
-                if (hov) {
-                    auto tip = DrawUtils::makeText(font_, "Click: SELL ALL", 17, Pal::GOLD);
-                    tip.setPosition({sx-20.f, slotY-26.f});
-                    window_.draw(tip);
-                }
-            }
-            auto lbl = DrawUtils::makeText(font_, "SELL", 12, Pal::CREAM);
-            lbl.setPosition({sx+slotSz/2.f-14.f, slotY+slotSz-18.f});
-            window_.draw(lbl);
-        } else {
-            const auto* def = findItem(sl.name);
-            if (def) CropRenderer::drawCropIcon(window_, font_, *def, {sx+slotSz/2.f, slotY+slotSz*0.46f}, slotSz*0.72f);
-            auto cnt = DrawUtils::makeText(font_, std::to_string(sl.qty), 15, Pal::GOLD);
-            cnt.setPosition({sx+slotSz-20.f, slotY+slotSz-22.f});
-            window_.draw(cnt);
-        }
+        const auto* def = findItem(sl.name);
+        if (def) CropRenderer::drawCropIcon(window_, font_, *def, {sx+slotSz/2.f, slotY+slotSz*0.46f}, slotSz*0.72f);
+        auto cnt = DrawUtils::makeText(font_, std::to_string(sl.qty), 15, Pal::GOLD);
+        cnt.setPosition({sx+slotSz-20.f, slotY+slotSz-22.f});
+        window_.draw(cnt);
 
         if (sel || hov) {
             sf::RectangleShape outline({slotSz-3.f, slotSz-3.f});
