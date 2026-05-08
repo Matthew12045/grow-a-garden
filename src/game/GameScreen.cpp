@@ -1,6 +1,9 @@
 #include "GameScreen.h"
 #include "CropRenderer.h"
 
+#include "../items/FertilizerTool.h"
+#include "../items/WateringCan.h"
+
 #include <cmath>
 #include <iomanip>
 #include <sstream>
@@ -306,9 +309,19 @@ void GameScreen::buyItem(const ShopItemDef& def) {
     }
     game_.getPlayer().deductSheckles(def.buyPrice);
 
-    auto item = std::make_unique<Seed>(1, def.name, def.description,
-                                       def.buyPrice, def.cropName);
-    game_.getPlayer().getInventory().addItem(std::move(item), 1);
+    if (def.type == ShopItemType::TOOL) {
+        if (def.name == "Watering Can") {
+            auto item = std::make_unique<WateringCan>();
+            game_.getPlayer().getInventory().addItem(std::move(item), 1);
+        } else if (def.name == "Fertilizer") {
+            auto item = std::make_unique<FertilizerTool>();
+            game_.getPlayer().getInventory().addItem(std::move(item), 1);
+        }
+    } else {
+        auto item = std::make_unique<Seed>(1, def.name, def.description,
+                                           def.buyPrice, def.cropName);
+        game_.getPlayer().getInventory().addItem(std::move(item), 1);
+    }
 
     if (def.type == ShopItemType::SEED) {
         selectedSeed_ = def.name;
