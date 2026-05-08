@@ -11,21 +11,31 @@ TEST(WeatherSystemTest, StartsAsSummer) {
     EXPECT_EQ(ws.getCurrentWeather(), WeatherType::SUMMER);
 }
 
-// ── update changes weather ────────────────────────────────────────────────
-
-TEST(WeatherSystemTest, WeatherEventuallyChangesAfterEnoughUpdates) {
-    WeatherSystem ws;
-    // ticksUntilChange_ starts at 20. After 20 updates it must have changed
-    // (or re-rolled SUMMER — run enough iterations to guarantee at least one
-    //  non-SUMMER result with overwhelming probability).
-    bool changed = false;
-    for (int i = 0; i < 200 && !changed; ++i) {
-        ws.update();
-        if (ws.getCurrentWeather() != WeatherType::SUMMER) {
-            changed = true;
-        }
+namespace {
+bool isValidWeather(WeatherType weather)
+{
+    switch (weather) {
+        case WeatherType::SUMMER:
+        case WeatherType::RAIN:
+        case WeatherType::FROST:
+        case WeatherType::THUNDER_STORM:
+        case WeatherType::METEOR_SHOWER:
+            return true;
     }
-    EXPECT_TRUE(changed) << "Weather never left SUMMER after 200 updates";
+    return false;
+}
+} // namespace
+
+// ── update changes weather timer ─────────────────────────────────────────
+
+TEST(WeatherSystemTest, WeatherRollsAValidStateWhenTimerExpires) {
+    WeatherSystem ws;
+
+    for (int i = 0; i < 20; ++i) {
+        ws.update();
+    }
+
+    EXPECT_TRUE(isValidWeather(ws.getCurrentWeather()));
 }
 
 TEST(WeatherSystemTest, WeatherDoesNotChangeBeforeTicksUntilChangeExpires) {

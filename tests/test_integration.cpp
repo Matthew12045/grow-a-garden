@@ -126,13 +126,13 @@ TEST(Integration_WeatherMutation, RainMutationDoublesCarrotPrice) {
     EXPECT_EQ(item.getMutationList()[0], MutationType::WET);
 }
 
-// FROST (×5) stacked with SHOCKED (×100) → ×500 on a carrot.
-TEST(Integration_WeatherMutation, StackedMutationsMultiplyPrice) {
+// Current mutation pricing adds each multiplier contribution:
+// FROST and SHOCKED on a 30-sheckle carrot gives 30×5 + 30×100 = 3150.
+TEST(Integration_WeatherMutation, StackedMutationsAddMultiplierContributions) {
     Plant c(1, "Carrot", 0, 5, 10, 0, 30.0, false, 0);
     c.addMutation(Mutation(MutationType::FROZEN,  5.0f,   WeatherType::FROST));
     c.addMutation(Mutation(MutationType::SHOCKED, 100.0f, WeatherType::THUNDER_STORM));
     c.grow(50);
-    // Plant::calcPrice() implements mutation stacking differently; expect current behavior
     EXPECT_DOUBLE_EQ(c.harvest().getPrice(), 3150.0);
 }
 

@@ -90,8 +90,9 @@ TEST(PlantTest, HarvestWithFrozenMutationMultipliesBy5) {
     EXPECT_DOUBLE_EQ(item.getPrice(), 500.0);
 }
 
-TEST(PlantTest, HarvestWithStackedMutationsMultipliesAll) {
-    // Plant::calcPrice sums mutation contributions: 10×2 + 10×100 = 1020
+TEST(PlantTest, HarvestWithStackedMutationsAddsEachMultiplierContribution) {
+    // Current Plant::calcPrice adds each mutation contribution:
+    // 10×2 + 10×100 = 1020.
     ConcretePlant p(1, "Tomato", 5, 5, 10, 50, 10.0);
     p.addMutation(Mutation(MutationType::WET,     2.0f,   WeatherType::RAIN));
     p.addMutation(Mutation(MutationType::SHOCKED,  100.0f, WeatherType::THUNDER_STORM));

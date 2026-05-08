@@ -1,8 +1,8 @@
 #pragma once
 
 // ── Concrete Plant ─────────────────────────────────────────────────────────
-// Plant is abstract (protected ctor). This minimal subclass lets us test
-// all of Plant's non-virtual logic directly.
+// Convenience subclass used by focused unit tests that need a named concrete
+// plant fixture without depending on catalogue data.
 #include "../../src/entities/Plant.h"
 
 class ConcretePlant : public Plant {
