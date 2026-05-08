@@ -625,9 +625,8 @@ void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
         float slotSz = slot.size.x;
         bool  hov = slot.contains(mouse);
         bool isMenuSlot = (i == HOTBAR_ITEM_SLOTS);
-        bool isDraggingThis = inventoryOpen_ && inventoryDrag_ && inventoryDrag_->slot == i;
         bool hasItem = !isMenuSlot && i < static_cast<int>(inventorySlots_.size()) &&
-                       !inventorySlots_[i].empty() && !isDraggingThis;
+                       !inventorySlots_[i].empty();
         std::string name = hasItem ? inventorySlots_[i] : "";
         bool sel = hasItem && (name == selectedSeed_ || name == equippedTool_);
 
