@@ -65,10 +65,8 @@ private:
 
     void render();
     void drawBackground();
-    void drawCloud(float cx, float cy, float scale);
     void drawGardenBoard(sf::Vector2f mouse);
     void drawCell(int gx, int gy, sf::Vector2f screen, bool hovered);
-    void drawPlant(Plant* plant, sf::Vector2f screen);
     void drawTopUI();
     void drawInventoryBar(sf::Vector2f mouse);
     void drawShopTabButton(sf::Vector2f mouse);
@@ -78,7 +76,6 @@ private:
     void drawSeedCard(const ShopItemDef& def, sf::FloatRect b, sf::Vector2f mouse);
     void drawToolCard(const ShopItemDef& def, sf::FloatRect b, sf::Vector2f mouse);
     void drawSellPage(sf::Vector2f mouse);
-    void drawCropIcon(const ShopItemDef& def, sf::Vector2f centre, float sz);
     void onShopClick(sf::Vector2f pos);
 
     sf::FloatRect getSeedCardRect(int i, int cols, float cardsX, float cardsY, float cardW, float cardH) const;
