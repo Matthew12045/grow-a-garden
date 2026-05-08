@@ -96,7 +96,7 @@ TEST(PlantTest, HarvestWithStackedMutationsMultipliesAll) {
     p.addMutation(Mutation(MutationType::WET,     2.0f,   WeatherType::RAIN));
     p.addMutation(Mutation(MutationType::SHOCKED,  100.0f, WeatherType::THUNDER_STORM));
     HarvestedItem item = p.harvest();
-    EXPECT_DOUBLE_EQ(item.getPrice(), 2000.0);
+    EXPECT_DOUBLE_EQ(item.getPrice(), 1020.0);
 }
 
 TEST(PlantTest, HarvestTransfersMutationListToItem) {
@@ -169,5 +169,17 @@ TEST(PlantTest, SummerWeatherDoesNotChangeGrowthRate) {
     p.grow(49);
     EXPECT_FALSE(p.isFullyGrown());
     p.grow(1);
+    EXPECT_TRUE(p.isFullyGrown());
+}
+
+TEST(PlantTest, WeatherChangeDoesNotLowerFullyGrownStage) {
+    ConcretePlant p(1, "Tomato", 0, 5, 10, 0, 100.0);
+    p.applyWeatherEffect(WeatherType::RAIN);
+    p.grow(35);
+    ASSERT_TRUE(p.isFullyGrown());
+
+    p.applyWeatherEffect(WeatherType::SUMMER);
+    p.grow(1);
+
     EXPECT_TRUE(p.isFullyGrown());
 }

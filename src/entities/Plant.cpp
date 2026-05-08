@@ -42,7 +42,10 @@ void Plant::grow(std::size_t ticks)
     const std::size_t ticksToApply = (ticks < remainingTicks) ? ticks : remainingTicks;
     ticksElapsed_ += ticksToApply;
 
-    currentStage_ = static_cast<int>(ticksElapsed_ / currentTicksPerStage_);
+    const int computedStage = static_cast<int>(ticksElapsed_ / currentTicksPerStage_);
+    if (computedStage > currentStage_) {
+        currentStage_ = computedStage;
+    }
     if (currentStage_ > maxStages_) {
         currentStage_ = maxStages_;
     }
