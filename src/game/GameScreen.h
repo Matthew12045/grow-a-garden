@@ -46,6 +46,10 @@ private:
     std::size_t lastTick_    = 0;
     std::size_t dayCount_    = 1;
     bool        fastMode_    = false;
+    bool        inventoryOpen_ = false;
+    std::vector<std::string> inventorySlots_;
+    int         draggedInventorySlot_ = -1;
+    std::string draggedInventoryItem_;
 
     std::string selectedSeed_ = "Carrot Seed";
     std::string equippedTool_ = "";
@@ -56,6 +60,7 @@ private:
     void onMouseClick(sf::Vector2f pos);
     void update(float dt);
 
+    void selectInventoryItem(const std::string& name);
     void handleCellClick(sf::Vector2f pos);
     void plantSeed(int gx, int gy);
     void harvestCell(int gx, int gy);
@@ -68,6 +73,14 @@ private:
     void drawCell(int gx, int gy, sf::Vector2f screen, bool hovered);
     void drawTopUI();
     void drawInventoryBar(sf::Vector2f mouse);
+    void drawInventoryOverlay(sf::Vector2f mouse);
+    void handleInventoryOverlayClick(sf::Vector2f pos);
+    void syncInventorySlots();
+    int inventorySlotAt(sf::Vector2f pos) const;
+    bool isInventoryMenuSlot(sf::Vector2f pos) const;
+    void beginInventoryDrag(sf::Vector2f pos);
+    void finishInventoryDrag(sf::Vector2f pos);
+    void cancelInventoryDrag();
     void drawShopTabButton(sf::Vector2f mouse);
     void drawStatus();
 

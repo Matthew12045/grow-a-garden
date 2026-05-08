@@ -10,6 +10,76 @@
 #include <iostream>
 #include <algorithm>
 
+namespace {
+constexpr int   HOTBAR_ITEM_SLOTS = 9;
+constexpr int   HOTBAR_SLOTS      = HOTBAR_ITEM_SLOTS + 1;
+constexpr float HOTBAR_SLOT       = 64.f;
+constexpr float HOTBAR_GAP        = 4.f;
+constexpr float HOTBAR_PAD        = 8.f;
+
+constexpr int   INV_COLS   = 9;
+constexpr int   INV_ROWS   = 3;
+constexpr int   INV_SLOTS  = INV_COLS * INV_ROWS;
+constexpr int   INV_TOTAL_SLOTS = HOTBAR_ITEM_SLOTS + INV_SLOTS;
+constexpr float INV_SLOT   = HOTBAR_SLOT;
+constexpr float INV_GAP    = HOTBAR_GAP;
+constexpr float INV_PAD    = 24.f;
+constexpr float INV_TITLE  = 52.f;
+constexpr float INV_HOTBAR_GAP = 18.f;
+
+float inventoryGridW() {
+    return INV_COLS * INV_SLOT + (INV_COLS - 1) * INV_GAP;
+}
+
+float inventoryGridH() {
+    return INV_ROWS * INV_SLOT + (INV_ROWS - 1) * INV_GAP;
+}
+
+float inventoryPanelW() {
+    return inventoryGridW() + INV_PAD * 2.f;
+}
+
+sf::FloatRect hotbarSlotRect(int index) {
+    float totalW = HOTBAR_SLOTS * INV_SLOT + (HOTBAR_SLOTS - 1) * INV_GAP;
+    float panelW = totalW + HOTBAR_PAD * 2.f;
+    float panelX = BOARD_X + (BOARD_W - panelW) / 2.f;
+    float startX = panelX + HOTBAR_PAD;
+    float startY = INV_BAR_Y + (INV_BAR_H - INV_SLOT) / 2.f;
+    float sx = startX + index * (INV_SLOT + INV_GAP);
+    return {{sx, startY}, {INV_SLOT, INV_SLOT}};
+}
+
+sf::FloatRect hotbarPanelRect() {
+    float totalW = HOTBAR_SLOTS * INV_SLOT + (HOTBAR_SLOTS - 1) * INV_GAP;
+    float panelW = totalW + HOTBAR_PAD * 2.f;
+    float panelX = BOARD_X + (BOARD_W - panelW) / 2.f;
+    return {{panelX, INV_BAR_Y}, {panelW, INV_BAR_H}};
+}
+
+sf::FloatRect inventoryPanelRect();
+
+sf::FloatRect inventorySlotRect(int index) {
+    sf::FloatRect panel = inventoryPanelRect();
+    float panelX = panel.position.x;
+    float panelY = panel.position.y;
+    float startX = panelX + INV_PAD;
+    float startY = panelY + INV_TITLE + INV_PAD;
+    int col = index % INV_COLS;
+    int row = index / INV_COLS;
+    float sx = startX + col * (INV_SLOT + INV_GAP);
+    float sy = startY + row * (INV_SLOT + INV_GAP);
+    return {{sx, sy}, {INV_SLOT, INV_SLOT}};
+}
+
+sf::FloatRect inventoryPanelRect() {
+    float panelW = inventoryPanelW();
+    float panelH = INV_TITLE + inventoryGridH() + INV_PAD * 2.f;
+    float panelX = hotbarSlotRect(0).position.x - INV_PAD;
+    float panelY = INV_BAR_Y - INV_HOTBAR_GAP - panelH;
+    return {{panelX, panelY}, {panelW, panelH}};
+}
+}
+
 // ─────────────────────────────────────────────────────────────────────
 //  Constructor
 // ─────────────────────────────────────────────────────────────────────
@@ -72,7 +142,8 @@ void GameScreen::handleEvent(const sf::Event& ev) {
 
     if (auto* kp = ev.getIf<sf::Event::KeyPressed>()) {
         if (kp->code == sf::Keyboard::Key::Escape) {
-            if (shopOverlay_.isOpen()) shopOverlay_.close();
+            if (inventoryOpen_) { inventoryOpen_ = false; cancelInventoryDrag(); }
+            else if (shopOverlay_.isOpen()) shopOverlay_.close();
             else window_.close();
         }
         if (kp->code == sf::Keyboard::Key::F) {
@@ -82,10 +153,23 @@ void GameScreen::handleEvent(const sf::Event& ev) {
         }
     }
 
+    if (auto* mb = ev.getIf<sf::Event::MouseButtonPressed>()) {
+        if (mb->button == sf::Mouse::Button::Left && inventoryOpen_) {
+            sf::Vector2f pos = window_.mapPixelToCoords(mb->position);
+            if (!isInventoryMenuSlot(pos)) beginInventoryDrag(pos);
+            return;
+        }
+    }
+
     if (auto* mb = ev.getIf<sf::Event::MouseButtonReleased>()) {
         if (mb->button == sf::Mouse::Button::Left) {
             sf::Vector2f pos = window_.mapPixelToCoords(mb->position);
-            if (shopOverlay_.isOpen()) shopOverlay_.handleClick(pos);
+            if (!shopOverlay_.isOpen() && isInventoryMenuSlot(pos)) {
+                inventoryOpen_ = !inventoryOpen_;
+                cancelInventoryDrag();
+            }
+            else if (inventoryOpen_) finishInventoryDrag(pos);
+            else if (shopOverlay_.isOpen()) shopOverlay_.handleClick(pos);
             else                  onMouseClick(pos);
         }
     }
@@ -101,36 +185,15 @@ void GameScreen::onMouseClick(sf::Vector2f pos) {
 
     // Inventory bar slots
     {
-        struct Slot { std::string name; };
-        std::vector<Slot> slots;
-        const auto& items = game_.getPlayer().getInventory().getItems();
-        for (const auto& item : items) {
-            slots.push_back({item->getName()});
-        }
-
-        int   n      = (int)slots.size();
-        if (n > 0) {
-            float barW   = BOARD_W;
-            float slotSz = std::min(68.f, (barW - 8.f) / (float)n - 6.f);
-            float totalW = n * (slotSz + 6.f) - 6.f;
-            float startX = BOARD_X + (barW - totalW) / 2.f;
-            float slotY  = INV_BAR_Y + (INV_BAR_H - slotSz) / 2.f;
-
-            for (int i = 0; i < n; ++i) {
-                float sx = startX + i * (slotSz + 6.f);
-                if (sf::FloatRect{{sx, slotY},{slotSz, slotSz}}.contains(pos)) {
-                    const auto* def = findItem(slots[i].name);
-                    if (def && def->type == ShopItemType::SEED) {
-                        selectedSeed_ = slots[i].name;
-                        equippedTool_ = "";
-                        setStatus("Selected: " + def->cropName + " seed", 1.5f);
-                    } else if (def && def->type == ShopItemType::TOOL) {
-                        equippedTool_ = slots[i].name;
-                        selectedSeed_ = "";
-                        setStatus("Equipped: " + def->cropName, 1.5f);
-                    }
-                    return;
+        syncInventorySlots();
+        for (int i = 0; i < HOTBAR_SLOTS; ++i) {
+            if (hotbarSlotRect(i).contains(pos)) {
+                if (i == HOTBAR_ITEM_SLOTS) {
+                    inventoryOpen_ = !inventoryOpen_;
+                } else if (i < static_cast<int>(inventorySlots_.size()) && !inventorySlots_[i].empty()) {
+                    selectInventoryItem(inventorySlots_[i]);
                 }
+                return;
             }
         }
     }
@@ -170,6 +233,19 @@ void GameScreen::update(float dt) {
 // ─────────────────────────────────────────────────────────────────────
 //  Game actions
 // ─────────────────────────────────────────────────────────────────────
+void GameScreen::selectInventoryItem(const std::string& name) {
+    const auto* def = findItem(name);
+    if (def && def->type == ShopItemType::SEED) {
+        selectedSeed_ = name;
+        equippedTool_ = "";
+        setStatus("Selected: " + def->cropName + " seed", 1.5f);
+    } else if (def && def->type == ShopItemType::TOOL) {
+        equippedTool_ = name;
+        selectedSeed_ = "";
+        setStatus("Equipped: " + def->cropName, 1.5f);
+    }
+}
+
 void GameScreen::handleCellClick(sf::Vector2f pos) {
     int gx = (int)((pos.x - GRID_X) / CELL_SZ);
     int gy = (int)((pos.y - GRID_Y) / CELL_SZ);
@@ -346,11 +422,15 @@ void GameScreen::render() {
     drawBackground();
     drawTopUI();
     drawGardenBoard(mouse);
-    drawInventoryBar(mouse);
+    if (!inventoryOpen_) drawInventoryBar(mouse);
     drawShopTabButton(mouse);
     drawStatus();
 
     if (shopOverlay_.isOpen()) shopOverlay_.draw(mouse);
+    if (inventoryOpen_) {
+        drawInventoryOverlay(mouse);
+        drawInventoryBar(mouse);
+    }
 
     window_.display();
 }
@@ -535,58 +615,218 @@ void GameScreen::drawCell(int gx, int gy, sf::Vector2f s, bool hov) {
 //  Inventory bar
 // ─────────────────────────────────────────────────────────────────────
 void GameScreen::drawInventoryBar(sf::Vector2f mouse) {
-    struct Slot { std::string name; int qty; };
-    std::vector<Slot> slots;
-    const auto& items = game_.getPlayer().getInventory().getItems();
-    for (const auto& item : items) {
-        int q = game_.getPlayer().getInventory().getQuantity(item->getName());
-        slots.push_back({item->getName(), q});
-    }
-    DrawUtils::drawPxPanel(window_, font_, {BOARD_X, INV_BAR_Y}, {BOARD_W, INV_BAR_H});
+    syncInventorySlots();
+    sf::FloatRect panel = hotbarPanelRect();
+    DrawUtils::drawPxPanel(window_, font_, panel.position, panel.size);
 
-    int   n      = (int)slots.size();
-    if (n == 0) return;
-
-    float barW   = BOARD_W;
-    float slotSz = std::min(72.f, (barW - 8.f)/(float)n - 6.f);
-    float totalW = n * (slotSz + 6.f) - 6.f;
-    float startX = BOARD_X + (barW - totalW) / 2.f;
-    float slotY  = INV_BAR_Y + (INV_BAR_H - slotSz) / 2.f;
-
-    for (int i = 0; i < n; ++i) {
-        float sx  = startX + i * (slotSz + 6.f);
-        bool  hov = (mouse.x>=sx && mouse.x<sx+slotSz &&
-                     mouse.y>=slotY && mouse.y<slotY+slotSz);
-        const Slot& sl  = slots[i];
-        bool        sel = (sl.name == selectedSeed_ || sl.name == equippedTool_);
+    for (int i = 0; i < HOTBAR_SLOTS; ++i) {
+        sf::FloatRect slot = hotbarSlotRect(i);
+        float sx  = slot.position.x;
+        float sy  = slot.position.y;
+        float slotSz = slot.size.x;
+        bool  hov = slot.contains(mouse);
+        bool isMenuSlot = (i == HOTBAR_ITEM_SLOTS);
+        bool isDraggingThis = inventoryOpen_ && draggedInventorySlot_ == i;
+        bool hasItem = !isMenuSlot && i < static_cast<int>(inventorySlots_.size()) &&
+                       !inventorySlots_[i].empty() && !isDraggingThis;
+        std::string name = hasItem ? inventorySlots_[i] : "";
+        bool sel = hasItem && (name == selectedSeed_ || name == equippedTool_);
 
         // Slot bg
         sf::RectangleShape shadow({slotSz, slotSz});
-        shadow.setPosition({sx, slotY});
+        shadow.setPosition({sx, sy});
         shadow.setFillColor(Pal::SOIL_DRK);
         window_.draw(shadow);
 
         sf::Color face = hov ? sf::Color{160,112,58} : Pal::SOIL_MID;
         sf::RectangleShape fc({slotSz-3.f, slotSz-3.f});
-        fc.setPosition({sx, slotY});
+        fc.setPosition({sx, sy});
         fc.setFillColor(face);
         window_.draw(fc);
 
-        const auto* def = findItem(sl.name);
-        if (def) CropRenderer::drawCropIcon(window_, font_, *def, {sx+slotSz/2.f, slotY+slotSz*0.46f}, slotSz*0.72f);
-        auto cnt = DrawUtils::makeText(font_, std::to_string(sl.qty), 15, Pal::GOLD);
-        cnt.setPosition({sx+slotSz-20.f, slotY+slotSz-22.f});
-        window_.draw(cnt);
+        if (hasItem) {
+            const auto* def = findItem(name);
+            int qty = game_.getPlayer().getInventory().getQuantity(name);
+            if (def) CropRenderer::drawCropIcon(window_, font_, *def, {sx+slotSz/2.f, sy+slotSz*0.46f}, slotSz*0.72f);
+            auto cnt = DrawUtils::makeText(font_, std::to_string(qty), 12, Pal::GOLD);
+            cnt.setPosition({sx+slotSz-15.f, sy+slotSz-17.f});
+            window_.draw(cnt);
+        } else if (isMenuSlot) {
+            auto more = DrawUtils::makeText(font_, "...", 26, Pal::CREAM);
+            DrawUtils::centreText(more, sf::FloatRect{{sx, sy}, {slotSz, slotSz}});
+            window_.draw(more);
+        }
 
         if (sel || hov) {
             sf::RectangleShape outline({slotSz-3.f, slotSz-3.f});
-            outline.setPosition({sx, slotY});
+            outline.setPosition({sx, sy});
             outline.setFillColor(sf::Color::Transparent);
             outline.setOutlineThickness(3.f);
             outline.setOutlineColor(sel ? Pal::GOLD : sf::Color{200,200,200,140});
             window_.draw(outline);
         }
     }
+
+    if (inventoryOpen_ && !draggedInventoryItem_.empty()) {
+        sf::Vector2f mouse = window_.mapPixelToCoords(sf::Mouse::getPosition(window_));
+        const auto* def = findItem(draggedInventoryItem_);
+        sf::RectangleShape ghost({HOTBAR_SLOT, HOTBAR_SLOT});
+        ghost.setOrigin({HOTBAR_SLOT / 2.f, HOTBAR_SLOT / 2.f});
+        ghost.setPosition(mouse);
+        ghost.setFillColor({130, 82, 40, 210});
+        ghost.setOutlineThickness(3.f);
+        ghost.setOutlineColor(Pal::GOLD);
+        window_.draw(ghost);
+
+        if (def) CropRenderer::drawCropIcon(window_, font_, *def, mouse, HOTBAR_SLOT * 0.72f);
+        int qty = game_.getPlayer().getInventory().getQuantity(draggedInventoryItem_);
+        auto cnt = DrawUtils::makeText(font_, std::to_string(qty), 13, Pal::GOLD);
+        cnt.setPosition({mouse.x + HOTBAR_SLOT / 2.f - 18.f, mouse.y + HOTBAR_SLOT / 2.f - 20.f});
+        window_.draw(cnt);
+    }
+}
+
+void GameScreen::drawInventoryOverlay(sf::Vector2f mouse) {
+    syncInventorySlots();
+    sf::FloatRect panel = inventoryPanelRect();
+    float panelX = panel.position.x;
+    float panelY = panel.position.y;
+    float panelW = panel.size.x;
+    float panelH = panel.size.y;
+
+    sf::RectangleShape dim({1920.f, 1080.f});
+    dim.setFillColor({0, 0, 0, 150});
+    window_.draw(dim);
+
+    DrawUtils::drawPxPanel(window_, font_, {panelX, panelY}, {panelW, panelH},
+                           Pal::SHOP_BG, {25,14,4}, {75,48,18});
+
+    auto title = DrawUtils::makeText(font_, "INVENTORY", 28, Pal::GOLD);
+    auto titleBounds = title.getLocalBounds();
+    title.setPosition({panelX + (panelW - titleBounds.size.x) / 2.f, panelY + 14.f});
+    window_.draw(title);
+
+    for (int i = 0; i < INV_SLOTS; ++i) {
+        sf::FloatRect slot = inventorySlotRect(i);
+        int itemSlot = HOTBAR_ITEM_SLOTS + i;
+        float sx = slot.position.x;
+        float sy = slot.position.y;
+        bool hov = slot.contains(mouse);
+        bool isDraggingThis = draggedInventorySlot_ == itemSlot;
+        bool hasItem = itemSlot < static_cast<int>(inventorySlots_.size()) &&
+                       !inventorySlots_[itemSlot].empty() && !isDraggingThis;
+        std::string name = hasItem ? inventorySlots_[itemSlot] : "";
+        bool sel = hasItem && (name == selectedSeed_ || name == equippedTool_);
+
+        sf::RectangleShape shadow({INV_SLOT, INV_SLOT});
+        shadow.setPosition({sx, sy});
+        shadow.setFillColor(Pal::SOIL_DRK);
+        window_.draw(shadow);
+
+        sf::RectangleShape face({INV_SLOT-3.f, INV_SLOT-3.f});
+        face.setPosition({sx, sy});
+        face.setFillColor(hov ? sf::Color{160,112,58} : Pal::SOIL_MID);
+        window_.draw(face);
+
+        if (hasItem) {
+            const auto* def = findItem(name);
+            int qty = game_.getPlayer().getInventory().getQuantity(name);
+            if (def) CropRenderer::drawCropIcon(window_, font_, *def, {sx+INV_SLOT/2.f, sy+INV_SLOT*0.46f}, INV_SLOT*0.72f);
+            auto cnt = DrawUtils::makeText(font_, std::to_string(qty), 13, Pal::GOLD);
+            cnt.setPosition({sx+INV_SLOT-18.f, sy+INV_SLOT-20.f});
+            window_.draw(cnt);
+        }
+
+        if (sel || hov) {
+            sf::RectangleShape outline({INV_SLOT-3.f, INV_SLOT-3.f});
+            outline.setPosition({sx, sy});
+            outline.setFillColor(sf::Color::Transparent);
+            outline.setOutlineThickness(3.f);
+            outline.setOutlineColor(sel ? Pal::GOLD : sf::Color{200,200,200,140});
+            window_.draw(outline);
+        }
+    }
+
+}
+
+void GameScreen::handleInventoryOverlayClick(sf::Vector2f pos) {
+    syncInventorySlots();
+    int slot = inventorySlotAt(pos);
+    if (slot >= 0 && slot < static_cast<int>(inventorySlots_.size()) && !inventorySlots_[slot].empty()) {
+        selectInventoryItem(inventorySlots_[slot]);
+    }
+}
+
+void GameScreen::syncInventorySlots() {
+    if (inventorySlots_.size() != INV_TOTAL_SLOTS) inventorySlots_.resize(INV_TOTAL_SLOTS);
+
+    auto& inv = game_.getPlayer().getInventory();
+    for (auto& slot : inventorySlots_) {
+        if (!slot.empty() && inv.getQuantity(slot) <= 0) slot.clear();
+    }
+
+    const auto& items = inv.getItems();
+    for (const auto& item : items) {
+        if (!item) continue;
+        std::string name = item->getName();
+        if (inv.getQuantity(name) <= 0) continue;
+        auto present = std::find(inventorySlots_.begin(), inventorySlots_.end(), name);
+        if (present != inventorySlots_.end()) continue;
+        auto empty = std::find(inventorySlots_.begin(), inventorySlots_.end(), "");
+        if (empty != inventorySlots_.end()) *empty = name;
+    }
+}
+
+int GameScreen::inventorySlotAt(sf::Vector2f pos) const {
+    for (int i = 0; i < HOTBAR_ITEM_SLOTS; ++i) {
+        if (hotbarSlotRect(i).contains(pos)) return i;
+    }
+
+    if (!inventoryOpen_) return -1;
+
+    for (int i = 0; i < INV_SLOTS; ++i) {
+        if (inventorySlotRect(i).contains(pos)) return HOTBAR_ITEM_SLOTS + i;
+    }
+    return -1;
+}
+
+bool GameScreen::isInventoryMenuSlot(sf::Vector2f pos) const {
+    return hotbarSlotRect(HOTBAR_ITEM_SLOTS).contains(pos);
+}
+
+void GameScreen::beginInventoryDrag(sf::Vector2f pos) {
+    syncInventorySlots();
+    int slot = inventorySlotAt(pos);
+    if (slot < 0 || slot >= static_cast<int>(inventorySlots_.size()) || inventorySlots_[slot].empty()) {
+        cancelInventoryDrag();
+        return;
+    }
+
+    draggedInventorySlot_ = slot;
+    draggedInventoryItem_ = inventorySlots_[slot];
+}
+
+void GameScreen::finishInventoryDrag(sf::Vector2f pos) {
+    if (draggedInventorySlot_ < 0 || draggedInventoryItem_.empty()) {
+        handleInventoryOverlayClick(pos);
+        return;
+    }
+
+    int target = inventorySlotAt(pos);
+    if (target >= 0 && target < static_cast<int>(inventorySlots_.size())) {
+        if (target == draggedInventorySlot_) {
+            selectInventoryItem(draggedInventoryItem_);
+        } else {
+            std::swap(inventorySlots_[draggedInventorySlot_], inventorySlots_[target]);
+        }
+    }
+
+    cancelInventoryDrag();
+}
+
+void GameScreen::cancelInventoryDrag() {
+    draggedInventorySlot_ = -1;
+    draggedInventoryItem_.clear();
 }
 
 // ─────────────────────────────────────────────────────────────────────
