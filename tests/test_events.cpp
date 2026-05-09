@@ -61,8 +61,8 @@ TEST(RaccoonEventTest, TriggerStealsAtMostStolenAmountPlants) {
         << "Raccoon should not steal more than stolenAmount plants";
 }
 
-TEST(RaccoonEventTest, DefaultStolenAmountIs10) {
-    RaccoonEvent raccoon;  // default ctor stolenAmount=10
+TEST(RaccoonEventTest, DefaultStolenAmountIs2) {
+    RaccoonEvent raccoon;  // default ctor stolenAmount=2
     Garden g(20, 20);
     Player player;
     fillGarden(g);
@@ -70,7 +70,7 @@ TEST(RaccoonEventTest, DefaultStolenAmountIs10) {
     raccoon.trigger(g, player);
     int remaining = countOccupied(g);
 
-    EXPECT_GE(remaining, 400 - 10);
+    EXPECT_GE(remaining, 400 - 2);
 }
 
 TEST(RaccoonEventTest, TriggerWithZeroStolenAmountStealsNothing) {
