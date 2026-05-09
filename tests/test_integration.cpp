@@ -70,7 +70,7 @@ private:
     std::string contents_;
 };
 
-void writeDirtySaveWithTomatoAtOrigin() {
+void writeDirtySaveWithCoconutAtOrigin() {
     nlohmann::json save = {
         {"player", {{"sheckles", 999}}},
         {"inventory", {{"items", nlohmann::json::array()}}},
@@ -78,9 +78,9 @@ void writeDirtySaveWithTomatoAtOrigin() {
             {
                 {"x", 0},
                 {"y", 0},
-                {"name", "Tomato"},
+                {"name", "Coconut"},
                 {"stage", 0},
-                {"maxStages", 6},
+                {"maxStages", 7},
                 {"ticksElapsed", 0}
             }
         })}}},
@@ -485,14 +485,15 @@ TEST(Integration_Game, ConstructAndUpdateDoesNotCrash) {
 // Planting a carrot via Game::getGarden() and growing it via the tick system.
 TEST(Integration_Game, PlantAndGrowCarrotThroughGameInterface) {
     SaveFileGuard ambientSaveGuard;
-    writeDirtySaveWithTomatoAtOrigin();
+    writeDirtySaveWithCoconutAtOrigin();
 
     SaveFileGuard saveGuard;
     Game game;
     Garden& garden = game.getGarden();
 
-    garden.plantCrop(0, 0, std::make_unique<Plant>(1, "Carrot", 0, 5, 10, 0, 30.0, false, 0));
+    ASSERT_TRUE(garden.plantCrop(0, 0, std::make_unique<Plant>(1, "Carrot", 0, 5, 10, 0, 30.0, false, 0)));
     ASSERT_NE(garden.getCell(0, 0).getPlant(), nullptr);
+    EXPECT_EQ(garden.getCell(0, 0).getPlant()->getName(), "Carrot");
 
     // Fast-forward the tick system to simulate 50 seconds of play
     game.getTickSystem().fastForward(50);
