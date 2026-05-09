@@ -5,16 +5,20 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ── Testing infrastructure ──────────────────────────────────────────────────
-enable_testing()
 include(FetchContent)
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        v1.14.0
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+option(GROW_A_GARDEN_BUILD_TESTS "Build Grow A Garden test executables" ON)
+
+# ── Testing infrastructure ──────────────────────────────────────────────────
+if(GROW_A_GARDEN_BUILD_TESTS)
+    enable_testing()
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG        v1.14.0
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+endif()
 
 # Download SFML 3 automatically
 FetchContent_Declare(
@@ -73,12 +77,16 @@ target_link_libraries(GrowAGarden PRIVATE
 # ── Copy assets ──────────────────────────────────────────────────────────────
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
     add_custom_command(TARGET GrowAGarden POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:GrowAGarden>/assets"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-            "$<TARGET_FILE_DIR:GrowAGarden>"
+            "$<TARGET_FILE_DIR:GrowAGarden>/assets"
         COMMENT "Copying assets to build directory"
     )
 endif()
 
 # ── Tests ────────────────────────────────────────────────────────────────────
-add_subdirectory(tests)
+if(GROW_A_GARDEN_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
