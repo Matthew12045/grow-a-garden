@@ -42,3 +42,4 @@ cmake/
 save.json
 claude-debugs-for-you/
 config.yaml
+coderabbit_section_review_log.md

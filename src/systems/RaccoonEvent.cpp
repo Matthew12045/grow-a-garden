@@ -12,10 +12,10 @@ void RaccoonEvent::trigger(Garden& garden, Player& player) {
     int plantsStolen = 0;
     int maxAttempts = 100; // Prevent infinite loop if garden mostly empty
     int attempts = 0;
+    std::uniform_int_distribution<int> xDist(0, garden.getWidth()  - 1);
+    std::uniform_int_distribution<int> yDist(0, garden.getHeight() - 1);
 
     while (plantsStolen < stolenAmount_ && attempts < maxAttempts) {
-        std::uniform_int_distribution<int> xDist(0, garden.getWidth()  - 1);
-        std::uniform_int_distribution<int> yDist(0, garden.getHeight() - 1);
         int x = xDist(rng_);
         int y = yDist(rng_);
 

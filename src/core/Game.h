@@ -4,9 +4,6 @@
 #include "../world/Garden.h"
 #include "../world/WeatherSystem.h"
 #include "Player.h"
-// #include "../systems/Shop.h"
-// #include "../ui/UIManager.h"
-// #include "../ui/AudioManager.h"
 #include "../systems/RandomEventManager.h"
 
 #include <memory>
@@ -20,9 +17,6 @@ private:
     Garden garden_;
     WeatherSystem weatherSystem_;
     Player player_;
-    // Shop shop_;
-    // UIManager uiManager_;
-    // AudioManager audioManager_;
     RandomEventManager randEventMgr_;
     long lastSaveTimestamp_;
     bool loadedSave_;

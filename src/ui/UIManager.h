@@ -7,6 +7,8 @@
 
 #include <string>
 
+// TODO: Wire UIManager into the active game screen flow as the shared
+// text/console UI layer for inventory, shop, weather, crop, and event output.
 enum class Language {
 	THAI,
 	ENGLISH,

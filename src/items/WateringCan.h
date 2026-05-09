@@ -26,10 +26,6 @@ public:
     using Item::getDescr;
     using Item::id;
 
-    // Tool::use — grows the plant in `cell` by GROWTH_BOOST_TICKS ticks.
-    // Because Plant::grow() is protected, we need a Carrot* (or any concrete
-    // subclass that publicly re-exports grow()) to call it. The cast is
-    // intentional here: the game will only give tools a cell that holds the
-    // crop type the tool was designed for.
+    // Grows the plant in `cell` by GROWTH_BOOST_TICKS ticks.
     void use(Cell& cell, Player& player) override;
 };

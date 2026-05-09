@@ -13,7 +13,7 @@ class HarvestedItem;
 class Plant 
 {
     private:
-        double calcPrice();
+        double calcPrice() const;
         int id_;
         std::string name_;
         int currentStage_;

@@ -148,7 +148,7 @@ std::vector<MutationType> Plant::getMutations() const
     return mt;
 }
 
-double Plant::calcPrice()
+double Plant::calcPrice() const
 {
     // If the plant has no mutations, it just sells for the base price
     if (mutations_.empty()) {
