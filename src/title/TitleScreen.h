@@ -38,10 +38,10 @@ private:
     State currentState;
     
     sf::Texture backgroundTexture;
-    sf::Sprite* backgroundSprite;
+    std::unique_ptr<sf::Sprite> backgroundSprite;
     
     sf::Texture introTexture;
-    sf::Sprite* introSprite;
+    std::unique_ptr<sf::Sprite> introSprite;
     
     sf::Texture startTexture;
     sf::Texture resetTexture;
@@ -55,7 +55,7 @@ private:
     std::unique_ptr<CreditsScreen> creditsScreen;
     std::unique_ptr<Button> confirmYesButton;
     std::unique_ptr<Button> confirmNoButton;
-    sf::Text* confirmText;
+    std::unique_ptr<sf::Text> confirmText;
     
     float fadeAlpha;
     float maxFade;

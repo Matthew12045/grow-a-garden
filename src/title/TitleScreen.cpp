@@ -42,7 +42,7 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
         backgroundTexture.loadFromImage(fallback);
     }
     
-    backgroundSprite = new sf::Sprite(backgroundTexture);
+    backgroundSprite = std::make_unique<sf::Sprite>(backgroundTexture);
     
     // Scale background to fit window
     auto textureSize = backgroundTexture.getSize();
@@ -63,7 +63,7 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
         }
         logoLoaded = introTexture.loadFromImage(fallbackLogo);
     }
-    introSprite = new sf::Sprite(introTexture);
+    introSprite = std::make_unique<sf::Sprite>(introTexture);
     // Center the logo using its texture center; scale is updated in draw() from the current window size
     auto logoSize = introTexture.getSize();
     if (logoSize.x > 0 && logoSize.y > 0) {
@@ -112,7 +112,6 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
     // Confirmation modal buttons (created without font; font set later)
     confirmYesButton = std::make_unique<Button>(1130.f, 500.f, 120.f, 60.f, "YES");
     confirmNoButton = std::make_unique<Button>(1310.f, 500.f, 120.f, 60.f, "NO");
-    confirmText = nullptr;
 }
 
 void TitleScreen::setFont(const sf::Font& font) {
@@ -124,8 +123,7 @@ void TitleScreen::setFont(const sf::Font& font) {
     confirmNoButton->setFont(font);
     creditsScreen->setFont(font);
     // setup confirm text for the reset confirmation (sf::Text requires a Font at construction in SFML3)
-    if (confirmText) delete confirmText;
-    confirmText = new sf::Text(font, "Are you sure you want to reset saved game?", 28);
+    confirmText = std::make_unique<sf::Text>(font, "Are you sure you want to reset saved game?", 28);
     confirmText->setFillColor(sf::Color::White);
     creditsScreen->setFont(font);
 }

@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <functional>
+#include <memory>
 
 class Button {
 public:
@@ -14,7 +15,7 @@ public:
     };
 
     Button(float x, float y, float width, float height, const std::string& text);
-    ~Button();
+    ~Button() = default;
 
     void setFont(const sf::Font& font);
     void setTexture(const sf::Texture& texture);
@@ -34,8 +35,8 @@ public:
 
 private:
     sf::ConvexShape buttonShape;
-    sf::Text* buttonText;
-    sf::Sprite* buttonSprite;
+    std::unique_ptr<sf::Text> buttonText;
+    std::unique_ptr<sf::Sprite> buttonSprite;
     const sf::Texture* buttonTexture;
     sf::FloatRect bounds;
     State state;

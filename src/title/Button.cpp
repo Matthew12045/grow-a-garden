@@ -40,19 +40,13 @@ Button::Button(float x, float y, float width, float height, const std::string& t
     targetScale = 1.0f;
 }
 
-Button::~Button() {
-    if (buttonText) delete buttonText;
-    if (buttonSprite) delete buttonSprite;
-}
-
 void Button::setFont(const sf::Font& font) {
     fontPtr = &font;
-    if (buttonText) delete buttonText;
     // Create text and center it within the button bounds
     // Use a 1.5x initial font size for better visibility
     unsigned int baseSize = 36;
     unsigned int size = static_cast<unsigned int>(std::round(baseSize * 1.5f));
-    buttonText = new sf::Text(font, buttonTextString, size);
+    buttonText = std::make_unique<sf::Text>(font, buttonTextString, size);
     buttonText->setFillColor(textNormalColor);
     auto tb = buttonText->getLocalBounds();
     buttonText->setPosition(sf::Vector2f(
@@ -64,8 +58,7 @@ void Button::setFont(const sf::Font& font) {
 
 void Button::setTexture(const sf::Texture& texture) {
     buttonTexture = &texture;
-    if (buttonSprite) delete buttonSprite;
-    buttonSprite = new sf::Sprite(texture);
+    buttonSprite = std::make_unique<sf::Sprite>(texture);
     
     // Set origin to the center of the image to scale from the center
     auto texSize = texture.getSize();
