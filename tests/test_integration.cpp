@@ -47,6 +47,7 @@ public:
             std::ostringstream buffer;
             buffer << in.rdbuf();
             contents_ = buffer.str();
+            in.close();
         }
 
         std::error_code ec;
@@ -453,6 +454,7 @@ TEST(Integration_RandomEventManager, TriggerIntervalPreventsImmediateRepeat) {
 
 // Game can be constructed and update() can be called without crashing.
 TEST(Integration_Game, ConstructAndUpdateDoesNotCrash) {
+    SaveFileGuard saveGuard;
     Game game;
     EXPECT_NO_THROW(game.update(0.016f));  // ~60 fps frame
     EXPECT_NO_THROW(game.update(1.0f));
@@ -460,6 +462,7 @@ TEST(Integration_Game, ConstructAndUpdateDoesNotCrash) {
 
 // Planting a carrot via Game::getGarden() and growing it via the tick system.
 TEST(Integration_Game, PlantAndGrowCarrotThroughGameInterface) {
+    SaveFileGuard saveGuard;
     Game game;
     Garden& garden = game.getGarden();
 
@@ -547,6 +550,7 @@ TEST(Integration_Game, BindHarvestBasketLoadsSavedBasket) {
 
 // Player sheckle balance survives a full buy → grow → sell cycle via Game.
 TEST(Integration_Game, FullEconomyCycleThroughGameInterface) {
+    SaveFileGuard saveGuard;
     Game  game;
     Shop  shop;
     Player& player = game.getPlayer();
