@@ -26,9 +26,7 @@ private:
     RandomEventManager randEventMgr_;
     long lastSaveTimestamp_;
     bool loadedSave_;
-    // Non-owning save hook for the UI harvest basket. The bound basket must
-    // outlive Game or be cleared with unbindHarvestBasket() before destruction.
-    std::vector<BasketEntry>* harvestBasket_;
+    std::vector<BasketEntry>* harvestBasket_ = nullptr;
 
 public:
     Game();
@@ -40,6 +38,9 @@ public:
     void processOfflineProgress();
     bool hasLoadedSave() const { return loadedSave_; }
     bool hasHarvestBasket() const { return harvestBasket_ != nullptr; }
+
+    // Non-owning save hook. The bound basket must outlive Game or be cleared
+    // with unbindHarvestBasket() before destruction.
     void bindHarvestBasket(std::vector<BasketEntry>& harvestBasket);
     void unbindHarvestBasket();
 

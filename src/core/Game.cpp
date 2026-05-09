@@ -36,8 +36,7 @@ Game::Game()
       weatherSystem_(),
       player_(),
       lastSaveTimestamp_(0),
-      loadedSave_(false),
-      harvestBasket_(nullptr) {
+      loadedSave_(false) {
     // Register random events
     randEventMgr_.registerEvent(std::make_unique<RaccoonEvent>(2));
     
