@@ -101,6 +101,8 @@ void InventoryOverlay::close() {
 }
 
 void InventoryOverlay::draw(sf::Vector2f mouse) {
+    syncSlots();
+
     if (open_) {
         drawOverlay(mouse);
     }
@@ -168,7 +170,6 @@ void InventoryOverlay::cancelDrag() {
 }
 
 void InventoryOverlay::drawBar(sf::Vector2f mouse) {
-    syncSlots();
     sf::FloatRect panel = hotbarPanelRect();
     DrawUtils::drawPxPanel(window_, font_, panel.position, panel.size);
 
@@ -238,7 +239,6 @@ void InventoryOverlay::drawBar(sf::Vector2f mouse) {
 }
 
 void InventoryOverlay::drawOverlay(sf::Vector2f mouse) {
-    syncSlots();
     sf::FloatRect panel = inventoryPanelRect();
     float panelX = panel.position.x;
     float panelY = panel.position.y;

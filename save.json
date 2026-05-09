@@ -1,10 +1,12 @@
 {
   "game": {
+    "initialized": true,
     "tick": 33
   },
   "garden": {
     "plants": []
   },
+  "harvestBasket": [],
   "inventory": {
     "items": []
   },
