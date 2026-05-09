@@ -40,3 +40,5 @@ build-win/
 cmake/
 .vs/
 save.json
+claude-debugs-for-you/
+config.yaml
