@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "../game/HarvestBasket.h"
 #include "../game/ShopData.h"
 #include "../systems/RaccoonEvent.h"
 #include "../game/PlantFactory.h"
@@ -35,7 +36,8 @@ Game::Game()
       weatherSystem_(),
       player_(),
       lastSaveTimestamp_(0),
-      loadedSave_(false) {
+      loadedSave_(false),
+      harvestBasket_(nullptr) {
     // Register random events
     randEventMgr_.registerEvent(std::make_unique<RaccoonEvent>(2));
     
@@ -51,6 +53,10 @@ void Game::update(float deltaTime) {
 
 void Game::autoSave() {
     saveGame();
+}
+
+void Game::bindHarvestBasket(std::vector<BasketEntry>& harvestBasket) {
+    harvestBasket_ = &harvestBasket;
 }
 
 void Game::saveGame() {
@@ -97,6 +103,24 @@ void Game::saveGame() {
         
         // Save tick count
         j["game"]["tick"] = tickSystem_.getTick();
+        j["game"]["initialized"] = true;
+
+        json basket = json::array();
+        if (harvestBasket_) {
+            for (const auto& entry : *harvestBasket_) {
+                json mutations = json::array();
+                for (MutationType mutation : entry.item.getMutationList()) {
+                    mutations.push_back(static_cast<int>(mutation));
+                }
+
+                basket.push_back({
+                    {"cropName", entry.cropName},
+                    {"price", entry.item.getPrice()},
+                    {"mutations", mutations}
+                });
+            }
+        }
+        j["harvestBasket"] = basket;
         
         // Write to file
         std::ofstream outFile("save.json");

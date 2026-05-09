@@ -5,55 +5,24 @@
 #include "../items/WateringCan.h"
 
 #include <cmath>
-#include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
 #include <algorithm>
-#include <nlohmann/json.hpp>
-
-using json = nlohmann::json;
-
-namespace {
-constexpr const char* SAVE_FILE = "save.json";
-
-std::vector<MutationType> loadMutationList(const json& mutationValues) {
-    std::vector<MutationType> mutations;
-    if (!mutationValues.is_array()) return mutations;
-
-    for (const auto& value : mutationValues) {
-        if (!value.is_number_integer()) continue;
-
-        int mutation = value.get<int>();
-        if (mutation >= static_cast<int>(MutationType::WET) &&
-            mutation <= static_cast<int>(MutationType::CELESTIAL)) {
-            mutations.push_back(static_cast<MutationType>(mutation));
-        }
-    }
-
-    return mutations;
-}
-}
 
 // ─────────────────────────────────────────────────────────────────────
 //  Constructor
 // ─────────────────────────────────────────────────────────────────────
 GameScreen::GameScreen(sf::RenderWindow& window, sf::Font& font)
     : window_(window), font_(font), game_(), shop_(), catalogue_(makeShopCatalogue()),
+      session_(game_, harvestBasket_, catalogue_),
       shopOverlay_(window_, font_, game_, harvestBasket_, catalogue_, *this),
       inventoryOverlay_(window_, font_, game_, catalogue_, *this)
 {
     // 2 ticks/sec
     game_.getTickSystem().setTickRate(0.5f);
 
-    loadHarvestBasket();
-
-    if (!game_.hasLoadedSave() || !isInitializedSave()) {
-        if (needsStarterRescue()) {
-            addStartingItems();
-        }
-        saveSession();
-    }
+    session_.initOrLoad();
 
     if (game_.getPlayer().getInventory().getQuantity(selectedSeed_) == 0) {
         selectedSeed_.clear();
@@ -62,129 +31,11 @@ GameScreen::GameScreen(sf::RenderWindow& window, sf::Font& font)
     setupShop();
 }
 
-void GameScreen::addStartingItems() {
-    game_.getPlayer().addSheckles(100.0f);
-    auto seed = std::make_unique<Seed>(1, "Carrot Seed",
-                                       "Grows into a carrot.", 10.0, "Carrot");
-    game_.getPlayer().getInventory().addItem(std::move(seed), 5);
-}
-
-bool GameScreen::isInitializedSave() {
-    try {
-        std::ifstream inFile(SAVE_FILE);
-        if (!inFile.is_open()) return false;
-
-        json save;
-        inFile >> save;
-        return save.contains("game") &&
-               save["game"].value("initialized", false);
-    } catch (const std::exception&) {
-        return false;
-    }
-}
-
-bool GameScreen::needsStarterRescue() {
-    if (!harvestBasket_.empty()) return false;
-
-    float cheapestSeed = 0.f;
-    for (const auto& def : catalogue_) {
-        if (def.type != ShopItemType::SEED) continue;
-        if (cheapestSeed == 0.f || def.buyPrice < cheapestSeed) {
-            cheapestSeed = def.buyPrice;
-        }
-
-        if (game_.getPlayer().getInventory().getQuantity(def.name) > 0) {
-            return false;
-        }
-    }
-
-    if (cheapestSeed > 0.f && game_.getPlayer().getSheckles() >= cheapestSeed) {
-        return false;
-    }
-
-    Garden& garden = game_.getGarden();
-    for (int y = 0; y < garden.getHeight(); ++y) {
-        for (int x = 0; x < garden.getWidth(); ++x) {
-            if (garden.getCell(x, y).getPlant()) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
 void GameScreen::setupShop() {
     for (const auto& def : catalogue_) {
         if (def.type == ShopItemType::SEED)
             shop_.addAvailableItem(std::make_unique<Seed>(
                 1, def.name, def.description, def.buyPrice, def.cropName));
-    }
-}
-
-void GameScreen::saveSession() {
-    game_.saveGame();
-
-    try {
-        std::ifstream inFile(SAVE_FILE);
-        if (!inFile.is_open()) {
-            std::cerr << "Error: Could not open " << SAVE_FILE << " for harvest basket save" << std::endl;
-            return;
-        }
-
-        json save;
-        inFile >> save;
-        inFile.close();
-
-        json basket = json::array();
-        for (const auto& entry : harvestBasket_) {
-            json mutations = json::array();
-            for (MutationType mutation : entry.item.getMutationList()) {
-                mutations.push_back(static_cast<int>(mutation));
-            }
-
-            basket.push_back({
-                {"cropName", entry.cropName},
-                {"price", entry.item.getPrice()},
-                {"mutations", mutations}
-            });
-        }
-
-        save["game"]["initialized"] = true;
-        save["harvestBasket"] = basket;
-
-        std::ofstream outFile(SAVE_FILE);
-        if (!outFile.is_open()) {
-            std::cerr << "Error: Could not open " << SAVE_FILE << " for harvest basket write" << std::endl;
-            return;
-        }
-
-        outFile << save.dump(2);
-    } catch (const std::exception& e) {
-        std::cerr << "Error saving harvest basket: " << e.what() << std::endl;
-    }
-}
-
-void GameScreen::loadHarvestBasket() {
-    try {
-        std::ifstream inFile(SAVE_FILE);
-        if (!inFile.is_open()) return;
-
-        json save;
-        inFile >> save;
-        if (!save.contains("harvestBasket") || !save["harvestBasket"].is_array()) return;
-
-        harvestBasket_.clear();
-        for (const auto& entry : save["harvestBasket"]) {
-            std::string cropName = entry.value("cropName", "");
-            double price = entry.value("price", 0.0);
-            if (cropName.empty()) continue;
-
-            std::vector<MutationType> mutations = loadMutationList(entry.value("mutations", json::array()));
-            harvestBasket_.push_back({HarvestedItem(price, std::move(mutations)), cropName});
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Error loading harvest basket: " << e.what() << std::endl;
     }
 }
 
@@ -213,7 +64,7 @@ void GameScreen::run() {
         render();
     }
 
-    saveSession();
+    session_.save();
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -353,7 +204,7 @@ void GameScreen::plantSeed(int gx, int gy) {
     if (game_.getPlayer().getInventory().getQuantity(selectedSeed_) == 0)
         selectedSeed_.clear();
 
-    saveSession();
+    session_.save();
 }
 
 void GameScreen::harvestCell(int gx, int gy) {
@@ -375,7 +226,7 @@ void GameScreen::harvestCell(int gx, int gy) {
     if (!back.item.getMutationList().empty()) ss << " (" << back.item.getMutations() << ")";
     setStatus(ss.str(), 3.f);
 
-    saveSession();
+    session_.save();
 }
 
 void GameScreen::sellAll() {
@@ -387,7 +238,7 @@ void GameScreen::sellAll() {
     std::ostringstream ss;
     ss << "Sold for +" << std::fixed << std::setprecision(0) << total << " sheckles!";
     setStatus(ss.str(), 3.f);
-    saveSession();
+    session_.save();
 }
 
 void GameScreen::sellOne(int index) {
@@ -399,7 +250,7 @@ void GameScreen::sellOne(int index) {
     std::ostringstream ss;
     ss << "Sold " << crop << " for +" << std::fixed << std::setprecision(0) << price << " S!";
     setStatus(ss.str(), 2.5f);
-    saveSession();
+    session_.save();
 }
 
 void GameScreen::sellGroup(const std::vector<int>& indices) {
@@ -426,7 +277,7 @@ void GameScreen::sellGroup(const std::vector<int>& indices) {
     ss << "Sold x" << soldCount << " " << crop << " for +"
        << std::fixed << std::setprecision(0) << total << " S!";
     setStatus(ss.str(), 2.5f);
-    saveSession();
+    session_.save();
 }
 
 void GameScreen::useToolOnCell(int gx, int gy) {
@@ -446,7 +297,7 @@ void GameScreen::useToolOnCell(int gx, int gy) {
         equippedTool_.clear();
 
     setStatus("Used " + toolName + "! +" + boost + " growth ticks");
-    saveSession();
+    session_.save();
 }
 
 void GameScreen::buyItem(const ShopItemDef& def) {
@@ -479,7 +330,7 @@ void GameScreen::buyItem(const ShopItemDef& def) {
     }
 
     setStatus("Bought " + def.cropName + "!", 2.5f);
-    saveSession();
+    session_.save();
 }
 
 void GameScreen::setStatus(const std::string& msg, float dur) {

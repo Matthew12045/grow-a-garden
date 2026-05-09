@@ -8,18 +8,13 @@
 #include "../ui/DrawUtils.h"
 #include "../core/Game.h"
 #include "../systems/Shop.h"
-#include "../entities/HarvestedItem.h"
 #include "../items/Seed.h"
+#include "HarvestBasket.h"
 #include "ShopData.h"
 #include "PlantFactory.h"
 #include "InventoryOverlay.h"
+#include "SessionManager.h"
 #include "ShopOverlay.h"
-
-// Pairs a harvested item with the plant name it came from (for display)
-struct BasketEntry {
-    HarvestedItem item;
-    std::string   cropName;
-};
 
 // ─────────────────────────────────────────────────────────────────────
 class GameScreen {
@@ -43,6 +38,7 @@ private:
     Shop  shop_;
     std::vector<BasketEntry>  harvestBasket_;
     std::vector<ShopItemDef>  catalogue_;
+    SessionManager session_;
     ShopOverlay shopOverlay_;
     InventoryOverlay inventoryOverlay_;
 
@@ -56,11 +52,6 @@ private:
     std::string equippedTool_ = "";
 
     void setupShop();
-    void addStartingItems();
-    bool isInitializedSave();
-    bool needsStarterRescue();
-    void saveSession();
-    void loadHarvestBasket();
 
     void handleEvent(const sf::Event& ev);
     void onMouseClick(sf::Vector2f pos);

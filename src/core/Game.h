@@ -10,6 +10,9 @@
 #include "../systems/RandomEventManager.h"
 
 #include <memory>
+#include <vector>
+
+struct BasketEntry;
 
 class Game {
 private:
@@ -23,6 +26,7 @@ private:
     RandomEventManager randEventMgr_;
     long lastSaveTimestamp_;
     bool loadedSave_;
+    std::vector<BasketEntry>* harvestBasket_;
 
 public:
     Game();
@@ -33,6 +37,7 @@ public:
     void loadGame();
     void processOfflineProgress();
     bool hasLoadedSave() const { return loadedSave_; }
+    void bindHarvestBasket(std::vector<BasketEntry>& harvestBasket);
 
     // Getters for testing/access
     TickSystem& getTickSystem() { return tickSystem_; }
