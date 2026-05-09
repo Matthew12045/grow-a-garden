@@ -69,6 +69,28 @@ private:
     bool hadSave_ = false;
     std::string contents_;
 };
+
+void writeDirtySaveWithTomatoAtOrigin() {
+    nlohmann::json save = {
+        {"player", {{"sheckles", 999}}},
+        {"inventory", {{"items", nlohmann::json::array()}}},
+        {"garden", {{"plants", nlohmann::json::array({
+            {
+                {"x", 0},
+                {"y", 0},
+                {"name", "Tomato"},
+                {"stage", 0},
+                {"maxStages", 6},
+                {"ticksElapsed", 0}
+            }
+        })}}},
+        {"game", {{"tick", 33}, {"initialized", true}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+}
 } // namespace
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -462,6 +484,9 @@ TEST(Integration_Game, ConstructAndUpdateDoesNotCrash) {
 
 // Planting a carrot via Game::getGarden() and growing it via the tick system.
 TEST(Integration_Game, PlantAndGrowCarrotThroughGameInterface) {
+    SaveFileGuard ambientSaveGuard;
+    writeDirtySaveWithTomatoAtOrigin();
+
     SaveFileGuard saveGuard;
     Game game;
     Garden& garden = game.getGarden();
