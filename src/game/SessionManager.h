@@ -20,12 +20,7 @@ public:
     void addStartingItems();
 
 private:
-    bool isInitializedSave() const;
-    void loadHarvestBasket();
-
     Game& game_;
     std::vector<BasketEntry>& harvestBasket_;
     const std::vector<ShopItemDef>& catalogue_;
-
-    static constexpr const char* SAVE_FILE = "save.json";
 };

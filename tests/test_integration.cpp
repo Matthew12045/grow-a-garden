@@ -9,12 +9,18 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <sstream>
+#include <string>
 #include <thread>
 
 // ── Game systems ─────────────────────────────────────────────────────────
 #include "../src/core/Game.h"
 #include "../src/core/Player.h"
 #include "../src/core/TickSystem.h"
+#include "../src/game/HarvestBasket.h"
 
 // ── World ─────────────────────────────────────────────────────────────────
 #include "../src/world/Garden.h"
@@ -30,6 +36,39 @@
 #include "../src/systems/Inventory.h"
 #include "../src/systems/RaccoonEvent.h"
 #include "../src/systems/RandomEventManager.h"
+
+namespace {
+class SaveFileGuard {
+public:
+    SaveFileGuard() {
+        std::ifstream in(path_, std::ios::binary);
+        if (in.is_open()) {
+            hadSave_ = true;
+            std::ostringstream buffer;
+            buffer << in.rdbuf();
+            contents_ = buffer.str();
+        }
+
+        std::error_code ec;
+        std::filesystem::remove(path_, ec);
+    }
+
+    ~SaveFileGuard() {
+        std::error_code ec;
+        if (hadSave_) {
+            std::ofstream out(path_, std::ios::binary | std::ios::trunc);
+            out << contents_;
+        } else {
+            std::filesystem::remove(path_, ec);
+        }
+    }
+
+private:
+    static constexpr const char* path_ = "save.json";
+    bool hadSave_ = false;
+    std::string contents_;
+};
+} // namespace
 
 // ─────────────────────────────────────────────────────────────────────────
 // GROUP 1 — Carrot full grow → harvest → sell lifecycle
@@ -451,6 +490,58 @@ TEST(Integration_Game, OfflineProgressFastForwardsTicks) {
     // tick count does not decrease.
     game.processOfflineProgress();
     EXPECT_GE(game.getTickSystem().getTick(), ticksBefore);
+}
+
+TEST(Integration_Game, SaveGamePreservesHarvestBasketWhenUnbound) {
+    SaveFileGuard saveGuard;
+    nlohmann::json existing = {
+        {"game", {{"initialized", true}, {"tick", 7}}},
+        {"harvestBasket", nlohmann::json::array({
+            {{"cropName", "Carrot"}, {"price", 30.0}, {"mutations", nlohmann::json::array({0})}}
+        })},
+        {"customTopLevel", "keep"}
+    };
+
+    std::ofstream out("save.json");
+    out << existing.dump(2);
+    out.close();
+
+    Game game;
+    game.getPlayer().addSheckles(25.0f);
+    game.saveGame();
+
+    std::ifstream in("save.json");
+    nlohmann::json saved;
+    in >> saved;
+
+    EXPECT_EQ(saved["harvestBasket"], existing["harvestBasket"]);
+    EXPECT_EQ(saved["customTopLevel"], "keep");
+    EXPECT_TRUE(saved["game"].value("initialized", false));
+    EXPECT_FLOAT_EQ(saved["player"]["sheckles"].get<float>(), 25.0f);
+}
+
+TEST(Integration_Game, BindHarvestBasketLoadsSavedBasket) {
+    SaveFileGuard saveGuard;
+    nlohmann::json existing = {
+        {"game", {{"initialized", true}, {"tick", 0}}},
+        {"harvestBasket", nlohmann::json::array({
+            {{"cropName", "Carrot"}, {"price", 60.0}, {"mutations", nlohmann::json::array({0})}}
+        })}
+    };
+
+    std::ofstream out("save.json");
+    out << existing.dump(2);
+    out.close();
+
+    Game game;
+    std::vector<BasketEntry> basket;
+    game.bindHarvestBasket(basket);
+
+    ASSERT_EQ(basket.size(), 1u);
+    EXPECT_EQ(basket.front().cropName_, "Carrot");
+    EXPECT_DOUBLE_EQ(basket.front().item_.getPrice(), 60.0);
+
+    game.unbindHarvestBasket();
 }
 
 // Player sheckle balance survives a full buy → grow → sell cycle via Game.

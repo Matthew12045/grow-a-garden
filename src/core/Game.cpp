@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 using json = nlohmann::json;
 
@@ -29,6 +30,56 @@ const ShopItemDef* findDefByCropName(const std::vector<ShopItemDef>& catalogue, 
     });
     return (it != catalogue.end()) ? &(*it) : nullptr;
 }
+
+std::vector<MutationType> loadMutationList(const json& mutationValues) {
+    std::vector<MutationType> mutations;
+    if (!mutationValues.is_array()) return mutations;
+
+    for (const auto& value : mutationValues) {
+        if (!value.is_number_integer()) continue;
+
+        int mutation = value.get<int>();
+        if (mutation >= static_cast<int>(MutationType::WET) &&
+            mutation <= static_cast<int>(MutationType::CELESTIAL)) {
+            mutations.push_back(static_cast<MutationType>(mutation));
+        }
+    }
+
+    return mutations;
+}
+
+json readExistingSaveForMerge() {
+    std::ifstream inFile("save.json");
+    if (!inFile.is_open()) return json::object();
+
+    try {
+        json save;
+        inFile >> save;
+        return save.is_object() ? save : json::object();
+    } catch (const std::exception& e) {
+        std::cerr << "Warning: Could not read existing save.json while saving: "
+                  << e.what() << std::endl;
+        return json::object();
+    }
+}
+
+void restoreHarvestBasketFromSave(const json& save, std::vector<BasketEntry>* harvestBasket) {
+    if (harvestBasket == nullptr ||
+        !save.contains("harvestBasket") ||
+        !save["harvestBasket"].is_array()) {
+        return;
+    }
+
+    harvestBasket->clear();
+    for (const auto& entry : save["harvestBasket"]) {
+        std::string cropName = entry.value("cropName", "");
+        double price = entry.value("price", 0.0);
+        if (cropName.empty()) continue;
+
+        std::vector<MutationType> mutations = loadMutationList(entry.value("mutations", json::array()));
+        harvestBasket->push_back({HarvestedItem(price, std::move(mutations)), cropName});
+    }
+}
 }
 
 Game::Game()
@@ -37,7 +88,8 @@ Game::Game()
       weatherSystem_(),
       player_(),
       lastSaveTimestamp_(0),
-      loadedSave_(false) {
+      loadedSave_(false),
+      initialized_(false) {
     // Register random events
     randEventMgr_.registerEvent(std::make_unique<RaccoonEvent>(2));
     
@@ -57,6 +109,9 @@ void Game::autoSave() {
 
 void Game::bindHarvestBasket(std::vector<BasketEntry>& harvestBasket) {
     harvestBasket_ = &harvestBasket;
+    if (loadedSave_) {
+        restoreHarvestBasketFromSave(readExistingSaveForMerge(), harvestBasket_);
+    }
 }
 
 void Game::unbindHarvestBasket() {
@@ -65,9 +120,10 @@ void Game::unbindHarvestBasket() {
 
 void Game::saveGame() {
     try {
-        json j;
+        json j = readExistingSaveForMerge();
         
         // Save player sheckles
+        j["player"] = json::object();
         j["player"]["sheckles"] = player_.getSheckles();
         
         // Save inventory items with quantities
@@ -83,6 +139,7 @@ void Game::saveGame() {
                 });
             }
         }
+        j["inventory"] = json::object();
         j["inventory"]["items"] = invItems;
         
         // Save garden plants
@@ -103,14 +160,18 @@ void Game::saveGame() {
                 }
             }
         }
+        j["garden"] = json::object();
         j["garden"]["plants"] = gardenPlants;
         
         // Save tick count
+        if (!j.contains("game") || !j["game"].is_object()) {
+            j["game"] = json::object();
+        }
         j["game"]["tick"] = tickSystem_.getTick();
-        j["game"]["initialized"] = true;
+        j["game"]["initialized"] = initialized_;
 
-        json basket = json::array();
         if (hasHarvestBasket()) {
+            json basket = json::array();
             for (const auto& entry : *harvestBasket_) {
                 json mutations = json::array();
                 for (MutationType mutation : entry.item_.getMutationList()) {
@@ -123,8 +184,8 @@ void Game::saveGame() {
                     {"mutations", mutations}
                 });
             }
+            j["harvestBasket"] = basket;
         }
-        j["harvestBasket"] = basket;
         
         // Write to file
         std::ofstream outFile("save.json");
@@ -149,6 +210,7 @@ void Game::saveGame() {
 void Game::loadGame() {
     try {
         loadedSave_ = false;
+        initialized_ = false;
         std::ifstream inFile("save.json");
         if (!inFile.is_open()) {
             // File doesn't exist, no previous save to load
@@ -160,6 +222,10 @@ void Game::loadGame() {
         inFile.close();
 
         const auto catalogue = makeShopCatalogue();
+
+        if (j.contains("game") && j["game"].is_object()) {
+            initialized_ = j["game"].value("initialized", false);
+        }
         
         // Restore player sheckles
         if (j.contains("player") && j["player"].contains("sheckles")) {
@@ -218,6 +284,8 @@ void Game::loadGame() {
                 tickSystem_.fastForward(savedTick);
             }
         }
+
+        restoreHarvestBasketFromSave(j, harvestBasket_);
         
         // Update save timestamp to current
         auto now = std::chrono::system_clock::now();
@@ -228,6 +296,7 @@ void Game::loadGame() {
         
     } catch (const std::exception& e) {
         loadedSave_ = false;
+        initialized_ = false;
         std::cerr << "Error loading game: " << e.what() << std::endl;
     }
 }

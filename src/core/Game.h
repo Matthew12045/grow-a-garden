@@ -20,6 +20,7 @@ private:
     RandomEventManager randEventMgr_;
     long lastSaveTimestamp_;
     bool loadedSave_;
+    bool initialized_;
     std::vector<BasketEntry>* harvestBasket_ = nullptr;
 
 public:
@@ -31,6 +32,8 @@ public:
     void loadGame();
     void processOfflineProgress();
     bool hasLoadedSave() const { return loadedSave_; }
+    bool isInitialized() const { return initialized_; }
+    void setInitialized(bool initialized) { initialized_ = initialized; }
     bool hasHarvestBasket() const { return harvestBasket_ != nullptr; }
 
     // Non-owning save hook. The bound basket must outlive Game or be cleared

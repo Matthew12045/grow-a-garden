@@ -2,33 +2,8 @@
 
 #include "../items/Seed.h"
 
-#include <fstream>
-#include <iostream>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <optional>
-#include <utility>
-
-using json = nlohmann::json;
-
-namespace {
-std::vector<MutationType> loadMutationList(const json& mutationValues) {
-    std::vector<MutationType> mutations;
-    if (!mutationValues.is_array()) return mutations;
-
-    for (const auto& value : mutationValues) {
-        if (!value.is_number_integer()) continue;
-
-        int mutation = value.get<int>();
-        if (mutation >= static_cast<int>(MutationType::WET) &&
-            mutation <= static_cast<int>(MutationType::CELESTIAL)) {
-            mutations.push_back(static_cast<MutationType>(mutation));
-        }
-    }
-
-    return mutations;
-}
-} // namespace
 
 SessionManager::SessionManager(Game& game,
                                std::vector<BasketEntry>& harvestBasket,
@@ -45,11 +20,11 @@ SessionManager::~SessionManager() {
 }
 
 void SessionManager::initOrLoad() {
-    loadHarvestBasket();
-    if (!game_.hasLoadedSave() || !isInitializedSave()) {
+    if (!game_.hasLoadedSave() || !game_.isInitialized()) {
         if (needsStarterRescue()) {
             addStartingItems();
         }
+        game_.setInitialized(true);
         save();
     }
 }
@@ -94,41 +69,4 @@ bool SessionManager::needsStarterRescue() const {
     }
 
     return true;
-}
-
-bool SessionManager::isInitializedSave() const {
-    try {
-        std::ifstream inFile(SAVE_FILE);
-        if (!inFile.is_open()) return false;
-
-        json save;
-        inFile >> save;
-        return save.contains("game") &&
-               save["game"].value("initialized", false);
-    } catch (const std::exception&) {
-        return false;
-    }
-}
-
-void SessionManager::loadHarvestBasket() {
-    try {
-        std::ifstream inFile(SAVE_FILE);
-        if (!inFile.is_open()) return;
-
-        json save;
-        inFile >> save;
-        if (!save.contains("harvestBasket") || !save["harvestBasket"].is_array()) return;
-
-        harvestBasket_.clear();
-        for (const auto& entry : save["harvestBasket"]) {
-            std::string cropName = entry.value("cropName", "");
-            double price = entry.value("price", 0.0);
-            if (cropName.empty()) continue;
-
-            std::vector<MutationType> mutations = loadMutationList(entry.value("mutations", json::array()));
-            harvestBasket_.push_back({HarvestedItem(price, std::move(mutations)), cropName});
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Error loading harvest basket: " << e.what() << std::endl;
-    }
 }
