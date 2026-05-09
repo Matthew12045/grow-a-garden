@@ -223,7 +223,7 @@ void GameScreen::harvestCell(int gx, int gy) {
     ss << "Harvested " << plantName << "!  +"
        << std::fixed << std::setprecision(0) << price << " S";
     const auto& back = harvestBasket_.back();
-    if (!back.item.getMutationList().empty()) ss << " (" << back.item.getMutations() << ")";
+    if (!back.item_.getMutationList().empty()) ss << " (" << back.item_.getMutations() << ")";
     setStatus(ss.str(), 3.f);
 
     session_.save();
@@ -232,7 +232,7 @@ void GameScreen::harvestCell(int gx, int gy) {
 void GameScreen::sellAll() {
     if (harvestBasket_.empty()) { setStatus("Harvest basket is empty!"); return; }
     float total = 0.f;
-    for (const auto& e : harvestBasket_) total += (float)e.item.getPrice();
+    for (const auto& e : harvestBasket_) total += (float)e.item_.getPrice();
     harvestBasket_.clear();
     game_.getPlayer().addSheckles(total);
     std::ostringstream ss;
@@ -243,8 +243,8 @@ void GameScreen::sellAll() {
 
 void GameScreen::sellOne(int index) {
     if (index < 0 || index >= (int)harvestBasket_.size()) return;
-    float price = (float)harvestBasket_[index].item.getPrice();
-    std::string crop = harvestBasket_[index].cropName;
+    float price = (float)harvestBasket_[index].item_.getPrice();
+    std::string crop = harvestBasket_[index].cropName_;
     harvestBasket_.erase(harvestBasket_.begin() + index);
     game_.getPlayer().addSheckles(price);
     std::ostringstream ss;
@@ -260,12 +260,12 @@ void GameScreen::sellGroup(const std::vector<int>& indices) {
     std::sort(sorted.begin(), sorted.end(), std::greater<int>());
 
     float total = 0.f;
-    std::string crop = harvestBasket_[sorted.front()].cropName;
+    std::string crop = harvestBasket_[sorted.front()].cropName_;
     int soldCount = 0;
 
     for (int index : sorted) {
         if (index < 0 || index >= static_cast<int>(harvestBasket_.size())) continue;
-        total += static_cast<float>(harvestBasket_[index].item.getPrice());
+        total += static_cast<float>(harvestBasket_[index].item_.getPrice());
         harvestBasket_.erase(harvestBasket_.begin() + index);
         ++soldCount;
     }

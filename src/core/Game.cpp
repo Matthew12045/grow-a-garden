@@ -112,13 +112,13 @@ void Game::saveGame() {
         if (hasHarvestBasket()) {
             for (const auto& entry : *harvestBasket_) {
                 json mutations = json::array();
-                for (MutationType mutation : entry.item.getMutationList()) {
+                for (MutationType mutation : entry.item_.getMutationList()) {
                     mutations.push_back(static_cast<int>(mutation));
                 }
 
                 basket.push_back({
-                    {"cropName", entry.cropName},
-                    {"price", entry.item.getPrice()},
+                    {"cropName", entry.cropName_},
+                    {"price", entry.item_.getPrice()},
                     {"mutations", mutations}
                 });
             }

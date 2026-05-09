@@ -37,14 +37,14 @@ std::vector<SellGroup> groupHarvestBasket(const std::vector<BasketEntry>& basket
 
     for (int i = 0; i < static_cast<int>(basket.size()); ++i) {
         const BasketEntry& entry = basket[i];
-        const std::string key = entry.cropName + "|" + makeMutationKey(entry.item.getMutationList());
+        const std::string key = entry.cropName_ + "|" + makeMutationKey(entry.item_.getMutationList());
 
         auto it = std::find_if(groups.begin(), groups.end(), [&](const SellGroup& group) {
-            return group.cropName == entry.cropName && group.mutationKey == key;
+            return group.cropName == entry.cropName_ && group.mutationKey == key;
         });
 
         if (it == groups.end()) {
-            groups.push_back({entry.cropName, key, {i}});
+            groups.push_back({entry.cropName_, key, {i}});
         } else {
             it->indices.push_back(i);
         }
@@ -373,7 +373,7 @@ void ShopOverlay::drawSellPage(sf::Vector2f mouse) {
     window_.draw(hdrHl);
 
     float total = 0.f;
-    for (const auto& e : harvestBasket_) total += (float)e.item.getPrice();
+    for (const auto& e : harvestBasket_) total += (float)e.item_.getPrice();
 
     auto totalTxt = DrawUtils::makeText(font_, "Basket: " + std::to_string((int)harvestBasket_.size()) +
                              " items  |  Total: " +
@@ -403,8 +403,8 @@ void ShopOverlay::drawSellPage(sf::Vector2f mouse) {
 
         const SellGroup& group = groups[i];
         const BasketEntry& entry = harvestBasket_[group.indices.front()];
-        float price = (float)entry.item.getPrice();
-        bool  hasMut = !entry.item.getMutationList().empty();
+        float price = (float)entry.item_.getPrice();
+        bool  hasMut = !entry.item_.getMutationList().empty();
         int   count = static_cast<int>(group.indices.size());
 
         sf::RectangleShape bg(b.size);
@@ -428,14 +428,14 @@ void ShopOverlay::drawSellPage(sf::Vector2f mouse) {
         iconBg.setFillColor({28,16,5});
         window_.draw(iconBg);
 
-        const auto* def = findItemByCrop(entry.cropName);
+        const auto* def = findItemByCrop(entry.cropName_);
         if (def) CropRenderer::drawCropIcon(window_, font_, *def, {iconCX, iconCY}, iconSz * 0.70f);
 
         float tx = b.position.x + iconSz + 10.f;
         float tw = cardW - iconSz - 14.f;
         float ty = b.position.y + 12.f;
 
-        auto nameT = DrawUtils::makeText(font_, entry.cropName, 20, hov ? Pal::GOLD : Pal::CREAM);
+        auto nameT = DrawUtils::makeText(font_, entry.cropName_, 20, hov ? Pal::GOLD : Pal::CREAM);
         nameT.setPosition({tx, ty});
         window_.draw(nameT);
 
@@ -452,7 +452,7 @@ void ShopOverlay::drawSellPage(sf::Vector2f mouse) {
         window_.draw(priceT);
 
         if (hasMut) {
-            auto mutT = DrawUtils::makeText(font_, entry.item.getMutations(), 13, Pal::MUTATION);
+            auto mutT = DrawUtils::makeText(font_, entry.item_.getMutations(), 13, Pal::MUTATION);
             mutT.setPosition({tx, ty + 50.f});
             window_.draw(mutT);
         }
