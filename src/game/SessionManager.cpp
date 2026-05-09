@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <utility>
 
 using json = nlohmann::json;
@@ -67,10 +68,10 @@ void SessionManager::addStartingItems() {
 bool SessionManager::needsStarterRescue() const {
     if (!harvestBasket_.empty()) return false;
 
-    float cheapestSeed = 0.f;
+    std::optional<float> cheapestSeed;
     for (const auto& def : catalogue_) {
         if (def.type != ShopItemType::SEED) continue;
-        if (cheapestSeed == 0.f || def.buyPrice < cheapestSeed) {
+        if (!cheapestSeed.has_value() || def.buyPrice < *cheapestSeed) {
             cheapestSeed = def.buyPrice;
         }
 
@@ -79,7 +80,7 @@ bool SessionManager::needsStarterRescue() const {
         }
     }
 
-    if (cheapestSeed > 0.f && game_.getPlayer().getSheckles() >= cheapestSeed) {
+    if (cheapestSeed.has_value() && game_.getPlayer().getSheckles() >= *cheapestSeed) {
         return false;
     }
 
