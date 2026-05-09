@@ -4,6 +4,7 @@
 #include "../systems/RaccoonEvent.h"
 #include "../game/PlantFactory.h"
 #include "../items/Seed.h"
+#include "../ui/DrawUtils.h"
 #include <chrono>
 #include <iostream>
 #include <fstream>
@@ -32,7 +33,7 @@ const ShopItemDef* findDefByCropName(const std::vector<ShopItemDef>& catalogue, 
 
 Game::Game()
     : tickSystem_(1.0f), // 1 tick per second by default
-      garden_(5, 4),
+      garden_(static_cast<int>(BOARD_COLS), static_cast<int>(BOARD_ROWS)),
       weatherSystem_(),
       player_(),
       lastSaveTimestamp_(0),
