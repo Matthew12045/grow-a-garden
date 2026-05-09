@@ -39,6 +39,10 @@ SessionManager::SessionManager(Game& game,
     game_.bindHarvestBasket(harvestBasket_);
 }
 
+SessionManager::~SessionManager() {
+    game_.unbindHarvestBasket();
+}
+
 void SessionManager::initOrLoad() {
     loadHarvestBasket();
     if (!game_.hasLoadedSave() || !isInitializedSave()) {

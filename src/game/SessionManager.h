@@ -11,6 +11,7 @@ public:
     SessionManager(Game& game,
                    std::vector<BasketEntry>& harvestBasket,
                    const std::vector<ShopItemDef>& catalogue);
+    ~SessionManager();
 
     void initOrLoad();
     void save();

@@ -59,6 +59,10 @@ void Game::bindHarvestBasket(std::vector<BasketEntry>& harvestBasket) {
     harvestBasket_ = &harvestBasket;
 }
 
+void Game::unbindHarvestBasket() {
+    harvestBasket_ = nullptr;
+}
+
 void Game::saveGame() {
     try {
         json j;
@@ -106,7 +110,7 @@ void Game::saveGame() {
         j["game"]["initialized"] = true;
 
         json basket = json::array();
-        if (harvestBasket_) {
+        if (hasHarvestBasket()) {
             for (const auto& entry : *harvestBasket_) {
                 json mutations = json::array();
                 for (MutationType mutation : entry.item.getMutationList()) {
