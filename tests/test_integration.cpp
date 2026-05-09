@@ -479,6 +479,7 @@ TEST(Integration_Game, PlantAndGrowCarrotThroughGameInterface) {
 
 // processOfflineProgress fast-forwards ticks when called after a save.
 TEST(Integration_Game, OfflineProgressFastForwardsTicks) {
+    SaveFileGuard saveGuard;
     Game game;
     game.saveGame();
 
