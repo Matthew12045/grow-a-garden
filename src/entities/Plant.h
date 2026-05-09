@@ -47,4 +47,5 @@ class Plant
         const int getStage() const;
         const std::string& getName() const { return name_; }
         int getMaxStages() const { return maxStages_; }
+        std::size_t getTicksElapsed() const { return ticksElapsed_; }
 };

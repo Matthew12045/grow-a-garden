@@ -98,7 +98,7 @@ void Game::saveGame() {
                         {"name", plant->getName()},
                         {"stage", plant->getStage()},
                         {"maxStages", plant->getMaxStages()},
-                        {"ticksElapsed", 0}  // Plant doesn't expose ticksElapsed, we'll use 0 for now
+                        {"ticksElapsed", plant->getTicksElapsed()}
                     });
                 }
             }
