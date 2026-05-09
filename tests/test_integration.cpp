@@ -573,6 +573,41 @@ TEST(Integration_Game, BindHarvestBasketLoadsSavedBasket) {
     game.unbindHarvestBasket();
 }
 
+TEST(Integration_Game, BindHarvestBasketSkipsMalformedEntries) {
+    SaveFileGuard saveGuard;
+    nlohmann::json existing = {
+        {"game", {{"initialized", true}, {"tick", 0}}},
+        {"harvestBasket", nlohmann::json::array({
+            "not an object",
+            {{"cropName", ""}, {"price", 10.0}, {"mutations", nlohmann::json::array()}},
+            {{"cropName", 123}, {"price", 10.0}, {"mutations", nlohmann::json::array()}},
+            {{"cropName", "Rose"}, {"price", "expensive"}, {"mutations", nlohmann::json::array()}},
+            {{"cropName", "Corn"}, {"price", 60.0}, {"mutations", "wet"}},
+            {{"cropName", "Tomato"}, {"price", 65.0}, {"mutations", nlohmann::json::array({0, "bad"})}},
+            {{"cropName", "Cactus"}, {"price", 90.0}, {"mutations", nlohmann::json::array({99})}},
+            {{"cropName", "Blueberry"}, {"price", 45.0}, {"mutations", nlohmann::json::array({0, 2})}}
+        })}
+    };
+
+    std::ofstream out("save.json");
+    out << existing.dump(2);
+    out.close();
+
+    Game game;
+    std::vector<BasketEntry> basket = {
+        {HarvestedItem(1.0, {}), "Old"}
+    };
+
+    EXPECT_NO_THROW(game.bindHarvestBasket(basket));
+
+    ASSERT_EQ(basket.size(), 1u);
+    EXPECT_EQ(basket.front().cropName_, "Blueberry");
+    EXPECT_DOUBLE_EQ(basket.front().item_.getPrice(), 45.0);
+    EXPECT_EQ(basket.front().item_.getMutationList().size(), 2u);
+
+    game.unbindHarvestBasket();
+}
+
 // Player sheckle balance survives a full buy → grow → sell cycle via Game.
 TEST(Integration_Game, FullEconomyCycleThroughGameInterface) {
     SaveFileGuard saveGuard;

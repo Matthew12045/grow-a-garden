@@ -31,21 +31,23 @@ const ShopItemDef* findDefByCropName(const std::vector<ShopItemDef>& catalogue, 
     return (it != catalogue.end()) ? &(*it) : nullptr;
 }
 
-std::vector<MutationType> loadMutationList(const json& mutationValues) {
-    std::vector<MutationType> mutations;
-    if (!mutationValues.is_array()) return mutations;
+bool loadMutationList(const json& mutationValues, std::vector<MutationType>& mutations) {
+    mutations.clear();
+    if (!mutationValues.is_array()) return false;
 
     for (const auto& value : mutationValues) {
-        if (!value.is_number_integer()) continue;
+        if (!value.is_number_integer()) return false;
 
         int mutation = value.get<int>();
-        if (mutation >= static_cast<int>(MutationType::WET) &&
-            mutation <= static_cast<int>(MutationType::CELESTIAL)) {
-            mutations.push_back(static_cast<MutationType>(mutation));
+        if (mutation < static_cast<int>(MutationType::WET) ||
+            mutation > static_cast<int>(MutationType::CELESTIAL)) {
+            return false;
         }
+
+        mutations.push_back(static_cast<MutationType>(mutation));
     }
 
-    return mutations;
+    return true;
 }
 
 json readExistingSaveForMerge() {
@@ -70,15 +72,34 @@ void restoreHarvestBasketFromSave(const json& save, std::vector<BasketEntry>* ha
         return;
     }
 
-    harvestBasket->clear();
+    std::vector<BasketEntry> loadedBasket;
     for (const auto& entry : save["harvestBasket"]) {
-        std::string cropName = entry.value("cropName", "");
-        double price = entry.value("price", 0.0);
-        if (cropName.empty()) continue;
+        try {
+            if (!entry.is_object() ||
+                !entry.contains("cropName") ||
+                !entry["cropName"].is_string() ||
+                !entry.contains("price") ||
+                !entry["price"].is_number() ||
+                !entry.contains("mutations") ||
+                !entry["mutations"].is_array()) {
+                continue;
+            }
 
-        std::vector<MutationType> mutations = loadMutationList(entry.value("mutations", json::array()));
-        harvestBasket->push_back({HarvestedItem(price, std::move(mutations)), cropName});
+            std::string cropName = entry["cropName"].get<std::string>();
+            if (cropName.empty()) continue;
+
+            double price = entry["price"].get<double>();
+            std::vector<MutationType> mutations;
+            if (!loadMutationList(entry["mutations"], mutations)) continue;
+
+            loadedBasket.push_back({HarvestedItem(price, std::move(mutations)), cropName});
+        } catch (const std::exception& e) {
+            std::cerr << "Warning: Skipping invalid harvest basket entry: "
+                      << e.what() << std::endl;
+        }
     }
+
+    harvestBasket->swap(loadedBasket);
 }
 }
 
