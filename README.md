@@ -245,8 +245,9 @@ Run the game from the project root so asset paths resolve correctly.
 ## 🧭 Development Notes
 
 - `docs/class_diagram.puml` is the primary design reference for class relationships, inheritance, and associations.
+- TODO: `docs/class_diagram.puml` still says the garden is 20×20; runtime code currently uses a 5×4 board.
 - The in-game currency is called **sheckles**. Keep that spelling in code, UI text, and docs.
-- `Garden` is always a 20×20 grid.
+- The runtime garden is currently 5 columns × 4 rows: `src/ui/DrawUtils.h` defines `BOARD_COLS = 5` and `BOARD_ROWS = 4`, and `Game` constructs `Garden` from those constants.
 - `Plant`, `Item`, `Tool`, and `RandomEvent` are abstract concepts. Do not add public constructors that allow direct instantiation.
 - Keep shared public APIs stable when touching `Garden`, `Plant`, `TickSystem`, or other systems that teammates build against.
 - Item behavior should stay polymorphic through `Item`, `Seed`, `HarvestedItem`, and `Tool`; inventory quantities should stay map-based for item name counts.
