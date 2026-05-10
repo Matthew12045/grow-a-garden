@@ -42,7 +42,7 @@ class Garden {
     + getCell(x : int, y : int) : Cell
     + plantCrop(x : int, y : int, plant : Plant) : bool
 }
-note right of Garden : width = height = 20
+note right of Garden : constructor-sized; runtime board = 5 columns x 4 rows
 
 class Cell {
     - plant : Plant
