@@ -81,6 +81,7 @@ grow-a-garden/
 > This PlantUML file is the authoritative source of truth for all class relationships,
 > inheritance hierarchies, and associations in the project. When in doubt about how
 > classes relate, consult the diagram before making structural changes.
+> TODO: `docs/class_diagram.puml` still says the garden is 20×20; runtime code currently uses a 5×4 board.
 
 ### Core Classes
 
@@ -88,7 +89,7 @@ grow-a-garden/
 |---|---|---|
 | `Game` | `src/core/` | Root object, owns all systems |
 | `TickSystem` | `src/core/` | Drives all time-based logic; supports `fastForward()` for offline progress |
-| `Garden` | `src/world/` | 20×20 grid of `Cell` objects |
+| `Garden` | `src/world/` | Constructor-sized grid of `Cell` objects; currently 5 columns × 4 rows |
 | `Cell` | `src/world/` | Holds 0 or 1 `Plant` via `unique_ptr` |
 | `Plant` | `src/entities/` | **Abstract base** — do not instantiate directly |
 | `Mutation` | `src/entities/` | Weather-triggered multipliers on sell price |
@@ -120,7 +121,7 @@ enum class Language { THAI, ENGLISH, CHINESE };
 - `Plant::calcFinalPrice()` is **private** — folds all mutation multipliers into final sell price
 - `Plant::applyWeatherEffect()` modifies `ticksPerStage` **temporarily** while weather is active
 - `Game::processOfflineProgress()` compares `lastSaveTimestamp` to current time and bulk fast-forwards ticks on load
-- `Garden` is always 20×20
+- The runtime garden is currently 5 columns × 4 rows: `src/ui/DrawUtils.h` defines `BOARD_COLS = 5` and `BOARD_ROWS = 4`, and `Game` constructs `Garden` from those constants.
 - `regrowsAfterHarvest` plants reset to `regrowStage` instead of being removed
 
 ---
