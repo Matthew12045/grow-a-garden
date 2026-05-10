@@ -22,3 +22,8 @@ std::size_t TickSystem::getTick() const {
 void TickSystem::fastForward(std::size_t ticks) {
     currentTick_ += ticks;
 }
+
+void TickSystem::reset(std::size_t tick) {
+    currentTick_ = tick;
+    timeAccumulator_ = 0.0f;
+}

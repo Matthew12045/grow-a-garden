@@ -170,6 +170,20 @@ void Game::unbindHarvestBasket() {
     harvestBasket_ = nullptr;
 }
 
+void Game::resetStateForLoad() {
+    player_ = Player();
+    garden_ = Garden(static_cast<int>(BOARD_COLS), static_cast<int>(BOARD_ROWS));
+    tickSystem_.reset();
+
+    if (harvestBasket_ != nullptr) {
+        harvestBasket_->clear();
+    }
+
+    loadedSave_ = false;
+    initialized_ = false;
+    lastSaveTimestamp_ = 0;
+}
+
 void Game::saveGame() {
     try {
         json j = readExistingSaveForMerge();
@@ -257,22 +271,25 @@ void Game::saveGame() {
 }
 
 void Game::loadGame() {
+    json j;
     try {
-        loadedSave_ = false;
-        initialized_ = false;
-        lastSaveTimestamp_ = 0;
         std::ifstream inFile("save.json");
         if (!inFile.is_open()) {
             // File doesn't exist, no previous save to load
             return;
         }
         
-        json j;
         inFile >> j;
         inFile.close();
+    } catch (const std::exception& e) {
+        std::cerr << "Error reading save.json: " << e.what() << std::endl;
+        return;
+    }
 
+    try {
         const auto catalogue = makeShopCatalogue();
         const std::int64_t loadTimestamp = currentEpochSeconds();
+        resetStateForLoad();
         lastSaveTimestamp_ = loadTimestamp;
 
         if (j.contains("game") && j["game"].is_object()) {
@@ -350,11 +367,7 @@ void Game::loadGame() {
         // Restore tick count
         if (j.contains("game") && j["game"].contains("tick")) {
             std::size_t savedTick = j["game"]["tick"];
-            // Note: We can't directly set the tick, only fast-forward
-            // The constructor already initialized with 0, so we fast-forward
-            if (savedTick > 0) {
-                tickSystem_.fastForward(savedTick);
-            }
+            tickSystem_.reset(savedTick);
         }
 
         restoreHarvestBasketFromSave(j, harvestBasket_);

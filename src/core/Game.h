@@ -24,6 +24,8 @@ private:
     bool initialized_;
     std::vector<BasketEntry>* harvestBasket_ = nullptr;
 
+    void resetStateForLoad();
+
 public:
     Game();
 

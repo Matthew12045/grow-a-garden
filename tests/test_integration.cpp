@@ -389,6 +389,21 @@ TEST(Integration_TickSystem, TickSystemAccumulatesTicks) {
     EXPECT_EQ(ts.getTick(), 11u);
 }
 
+TEST(Integration_TickSystem, ResetPreservesTickRateAndClearsAccumulator) {
+    TickSystem ts(0.5f);
+    ts.update(0.25f);
+    ts.fastForward(10);
+
+    ts.reset(3);
+    EXPECT_EQ(ts.getTick(), 3u);
+
+    ts.update(0.25f);
+    EXPECT_EQ(ts.getTick(), 3u);
+
+    ts.update(0.25f);
+    EXPECT_EQ(ts.getTick(), 4u);
+}
+
 // fastForward simulates the offline-progress path: bulk ticks as if the
 // player came back after being away.
 TEST(Integration_TickSystem, FastForwardThenGrowCarrot) {
@@ -715,6 +730,152 @@ TEST(Integration_Game, LoadGameAppliesOfflineGrowthToSavedPlants) {
     EXPECT_TRUE(carrot->isFullyGrown());
     EXPECT_EQ(carrot->getTimeToGrowth(), 0u);
     EXPECT_GE(game.getTickSystem().getTick(), 60u);
+}
+
+TEST(Integration_Game, LoadGameReplacesExistingStateOnRepeatLoad) {
+    SaveFileGuard saveGuard;
+    const std::int64_t savedAt = currentEpochSecondsForTest() + 60;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 42}}},
+        {"inventory", {{"items", nlohmann::json::array({
+            {{"name", "Carrot Seed"}, {"quantity", 2}}
+        })}}},
+        {"garden", {{"plants", nlohmann::json::array({
+            {
+                {"x", 1},
+                {"y", 1},
+                {"name", "Carrot"},
+                {"stage", 0},
+                {"maxStages", 5},
+                {"ticksElapsed", 0}
+            }
+        })}}},
+        {"game", {{"tick", 12}, {"initialized", true}, {"saveTimestamp", savedAt}}},
+        {"harvestBasket", nlohmann::json::array({
+            {{"cropName", "Carrot"}, {"price", 60.0}, {"mutations", nlohmann::json::array({0})}}
+        })}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    std::vector<BasketEntry> basket;
+    game.bindHarvestBasket(basket);
+
+    game.getPlayer().addSheckles(100.0f);
+    game.getPlayer().getInventory().addItem(
+        std::make_unique<Seed>(1, "Blueberry Seed", "desc", 15.0, "Blueberry"), 7);
+    ASSERT_TRUE(game.getGarden().plantCrop(
+        0, 0, std::make_unique<Plant>(1, "Coconut", 0, 7, 25, 0, 200.0, false, 0)));
+    game.getTickSystem().fastForward(100);
+    basket.push_back({HarvestedItem(30.0, {}), "Dirty"});
+
+    game.loadGame();
+
+    EXPECT_TRUE(game.hasLoadedSave());
+    EXPECT_TRUE(game.isInitialized());
+    EXPECT_FLOAT_EQ(game.getPlayer().getSheckles(), 42.0f);
+    EXPECT_EQ(game.getPlayer().getInventory().getQuantity("Carrot Seed"), 2);
+    EXPECT_EQ(game.getPlayer().getInventory().getQuantity("Blueberry Seed"), 0);
+    EXPECT_EQ(game.getTickSystem().getTick(), 12u);
+
+    Garden& garden = game.getGarden();
+    EXPECT_EQ(garden.getWidth(), 5);
+    EXPECT_EQ(garden.getHeight(), 4);
+    EXPECT_EQ(countOccupied(garden), 1);
+    EXPECT_EQ(garden.getCell(0, 0).getPlant(), nullptr);
+    Plant* savedPlant = garden.getCell(1, 1).getPlant();
+    ASSERT_NE(savedPlant, nullptr);
+    EXPECT_EQ(savedPlant->getName(), "Carrot");
+
+    ASSERT_EQ(basket.size(), 1u);
+    EXPECT_EQ(basket.front().cropName_, "Carrot");
+    EXPECT_DOUBLE_EQ(basket.front().item_.getPrice(), 60.0);
+
+    game.unbindHarvestBasket();
+}
+
+TEST(Integration_Game, LoadGameMissingOptionalSectionsClearsExistingState) {
+    SaveFileGuard saveGuard;
+    const std::int64_t savedAt = currentEpochSecondsForTest() + 60;
+    nlohmann::json initialSave = {
+        {"player", {{"sheckles", 99}}},
+        {"inventory", {{"items", nlohmann::json::array({
+            {{"name", "Carrot Seed"}, {"quantity", 3}}
+        })}}},
+        {"garden", {{"plants", nlohmann::json::array({
+            {
+                {"x", 0},
+                {"y", 0},
+                {"name", "Carrot"},
+                {"stage", 0},
+                {"maxStages", 5},
+                {"ticksElapsed", 0}
+            }
+        })}}},
+        {"game", {{"tick", 8}, {"initialized", true}, {"saveTimestamp", savedAt}}},
+        {"harvestBasket", nlohmann::json::array({
+            {{"cropName", "Carrot"}, {"price", 30.0}, {"mutations", nlohmann::json::array()}}
+        })}
+    };
+
+    std::ofstream initialOut("save.json");
+    initialOut << initialSave.dump(2);
+    initialOut.close();
+
+    Game game;
+    std::vector<BasketEntry> basket;
+    game.bindHarvestBasket(basket);
+    ASSERT_FALSE(basket.empty());
+
+    nlohmann::json sparseSave = {
+        {"game", {{"tick", 5}, {"initialized", false}, {"saveTimestamp", savedAt}}}
+    };
+
+    std::ofstream sparseOut("save.json");
+    sparseOut << sparseSave.dump(2);
+    sparseOut.close();
+
+    game.loadGame();
+
+    EXPECT_TRUE(game.hasLoadedSave());
+    EXPECT_FALSE(game.isInitialized());
+    EXPECT_FLOAT_EQ(game.getPlayer().getSheckles(), 0.0f);
+    EXPECT_EQ(game.getPlayer().getInventory().getQuantity("Carrot Seed"), 0);
+    EXPECT_EQ(countOccupied(game.getGarden()), 0);
+    EXPECT_EQ(game.getTickSystem().getTick(), 5u);
+    EXPECT_TRUE(basket.empty());
+
+    game.unbindHarvestBasket();
+}
+
+TEST(Integration_Game, LoadGameWithoutSaveDoesNotWipeLiveState) {
+    SaveFileGuard saveGuard;
+    Game game;
+    std::vector<BasketEntry> basket;
+    game.bindHarvestBasket(basket);
+
+    game.getPlayer().addSheckles(12.0f);
+    game.getPlayer().getInventory().addItem(
+        std::make_unique<Seed>(1, "Carrot Seed", "desc", 10.0, "Carrot"), 4);
+    ASSERT_TRUE(game.getGarden().plantCrop(
+        0, 0, std::make_unique<Plant>(1, "Carrot", 0, 5, 10, 0, 30.0, false, 0)));
+    game.getTickSystem().fastForward(7);
+    basket.push_back({HarvestedItem(30.0, {}), "Carrot"});
+
+    game.loadGame();
+
+    EXPECT_FALSE(game.hasLoadedSave());
+    EXPECT_FLOAT_EQ(game.getPlayer().getSheckles(), 12.0f);
+    EXPECT_EQ(game.getPlayer().getInventory().getQuantity("Carrot Seed"), 4);
+    EXPECT_EQ(countOccupied(game.getGarden()), 1);
+    EXPECT_EQ(game.getTickSystem().getTick(), 7u);
+    ASSERT_EQ(basket.size(), 1u);
+    EXPECT_EQ(basket.front().cropName_, "Carrot");
+
+    game.unbindHarvestBasket();
 }
 
 TEST(Integration_Game, SaveGamePreservesHarvestBasketWhenUnbound) {
