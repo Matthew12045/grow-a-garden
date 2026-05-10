@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 #include "../src/systems/Inventory.h"
 #include "../src/systems/Shop.h"
+#include "../src/core/Player.h"
+#include "../src/entities/Plant.h"
 #include "../src/items/Seed.h"
+#include "../src/items/Tool.h"
 #include "../src/items/WateringCan.h"
+#include "../src/world/Cell.h"
 #include "helpers/ConcreteClasses.h"
 #include <memory>
 #include <string>
@@ -12,6 +16,24 @@
 static std::unique_ptr<Seed> makeSeed(const std::string& name, double price = 5.0) {
     return std::make_unique<Seed>(1, name, "desc", price, "CropType");
 }
+
+class OneDurabilityTool : public Tool {
+public:
+    OneDurabilityTool()
+        : Tool(99, "One Durability Tool", "Breaks after one valid use", 1.0, 1) {}
+
+    std::unique_ptr<Item> clone() const override {
+        return std::make_unique<OneDurabilityTool>(*this);
+    }
+
+    void use(Cell& cell, Player& /*player*/) override {
+        if (isBroken() || cell.getPlant() == nullptr) {
+            return;
+        }
+
+        consumeDurability();
+    }
+};
 
 // ── Inventory: addItem ────────────────────────────────────────────────────
 
@@ -146,6 +168,79 @@ TEST(InventoryTest, GetItemsReturnsAllPrototypes) {
 TEST(InventoryTest, GetItemsIsEmptyInitially) {
     Inventory inv(10);
     EXPECT_TRUE(inv.getItems().empty());
+}
+
+TEST(InventoryTest, GetItemPrototypeFindsOwnedPrototypeByName) {
+    Inventory inv(10);
+    ASSERT_TRUE(inv.addItem(std::make_unique<WateringCan>(), 1));
+
+    Item* item = inv.getItemPrototype("Watering Can");
+
+    ASSERT_NE(item, nullptr);
+    EXPECT_EQ(item->getName(), "Watering Can");
+    EXPECT_NE(dynamic_cast<Tool*>(item), nullptr);
+}
+
+TEST(InventoryToolUseTest, SuccessfulUseLeavesToolQuantityUnchanged) {
+    Player player;
+    Inventory& inv = player.getInventory();
+    Cell cell;
+    ASSERT_TRUE(cell.setPlant(std::make_unique<Plant>(
+        1, "Carrot", 0, 5, 10, 0, 30.0, false, 0)));
+    ASSERT_TRUE(inv.addItem(std::make_unique<WateringCan>(), 1));
+
+    Tool* tool = dynamic_cast<Tool*>(inv.getItemPrototype("Watering Can"));
+    ASSERT_NE(tool, nullptr);
+    tool->use(cell, player);
+    if (tool->isBroken()) {
+        inv.removeItem("Watering Can", 1);
+    }
+
+    EXPECT_EQ(inv.getQuantity("Watering Can"), 1);
+    tool = dynamic_cast<Tool*>(inv.getItemPrototype("Watering Can"));
+    ASSERT_NE(tool, nullptr);
+    EXPECT_EQ(tool->getDurability(), 49);
+}
+
+TEST(InventoryToolUseTest, BrokenSingleToolRemovesExactlyOneQuantity) {
+    Player player;
+    Inventory& inv = player.getInventory();
+    Cell cell;
+    ASSERT_TRUE(cell.setPlant(std::make_unique<Plant>(
+        1, "Carrot", 0, 5, 10, 0, 30.0, false, 0)));
+    ASSERT_TRUE(inv.addItem(std::make_unique<OneDurabilityTool>(), 1));
+
+    Tool* tool = dynamic_cast<Tool*>(inv.getItemPrototype("One Durability Tool"));
+    ASSERT_NE(tool, nullptr);
+    tool->use(cell, player);
+    if (tool->isBroken()) {
+        inv.removeItem("One Durability Tool", 1);
+    }
+
+    EXPECT_EQ(inv.getQuantity("One Durability Tool"), 0);
+    EXPECT_EQ(inv.getItemPrototype("One Durability Tool"), nullptr);
+}
+
+TEST(InventoryToolUseTest, BreakingOneToolInStackResetsNextToolDurability) {
+    Player player;
+    Inventory& inv = player.getInventory();
+    Cell cell;
+    ASSERT_TRUE(cell.setPlant(std::make_unique<Plant>(
+        1, "Carrot", 0, 5, 10, 0, 30.0, false, 0)));
+    ASSERT_TRUE(inv.addItem(std::make_unique<OneDurabilityTool>(), 2));
+
+    Tool* tool = dynamic_cast<Tool*>(inv.getItemPrototype("One Durability Tool"));
+    ASSERT_NE(tool, nullptr);
+    tool->use(cell, player);
+    ASSERT_TRUE(tool->isBroken());
+
+    inv.removeItem("One Durability Tool", 1);
+    Tool* nextTool = dynamic_cast<Tool*>(inv.getItemPrototype("One Durability Tool"));
+    ASSERT_NE(nextTool, nullptr);
+    nextTool->resetDurability();
+
+    EXPECT_EQ(inv.getQuantity("One Durability Tool"), 1);
+    EXPECT_EQ(nextTool->getDurability(), nextTool->getMaxDurability());
 }
 
 // ── Shop ─────────────────────────────────────────────────────────────────

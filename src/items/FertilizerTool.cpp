@@ -17,10 +17,15 @@ std::unique_ptr<Item> FertilizerTool::clone() const
 
 void FertilizerTool::use(Cell& cell, Player& /*player*/)
 {
+    if (isBroken()) {
+        return;
+    }
+
     Plant* plant = cell.getPlant();
     if (plant == nullptr) {
         return;
     }
 
     plant->grow(static_cast<std::size_t>(GROWTH_BOOST_TICKS));
+    consumeDurability();
 }

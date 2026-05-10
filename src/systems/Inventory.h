@@ -18,6 +18,8 @@ public:
     bool addItem(std::unique_ptr<Item> item, int qty);
     bool removeItem(const std::string& itemName, int qty);
     int getQuantity(const std::string& itemName) const;
+    Item* getItemPrototype(const std::string& itemName);
+    const Item* getItemPrototype(const std::string& itemName) const;
     bool isFull() const;
     const std::vector<std::unique_ptr<Item>>& getItems() const;
 };

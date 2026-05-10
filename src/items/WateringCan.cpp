@@ -16,11 +16,15 @@ std::unique_ptr<Item> WateringCan::clone() const
 
 void WateringCan::use(Cell& cell, Player& /*player*/)
 {
+    if (isBroken()) {
+        return;
+    }
+
     Plant* plant = cell.getPlant();
     if (plant == nullptr) {
         return;  // nothing to water
     }
 
-    // Grow the plant by the boost amount
     plant->grow(static_cast<std::size_t>(GROWTH_BOOST_TICKS));
+    consumeDurability();
 }

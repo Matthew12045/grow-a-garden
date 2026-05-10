@@ -7,6 +7,7 @@
 // ============================================================================
 
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <memory>
 #include <chrono>
 #include <cstdint>
@@ -33,6 +34,7 @@
 #include "../src/entities/Mutation.h"
 #include "../src/items/WateringCan.h"
 #include "../src/items/Seed.h"
+#include "../src/items/Tool.h"
 #include "../src/systems/Shop.h"
 #include "../src/systems/Inventory.h"
 #include "../src/systems/RaccoonEvent.h"
@@ -375,6 +377,7 @@ TEST(Integration_WateringCan, EquipAndUseAdvancesCarrotGrowth) {
     Plant* c = cell.getPlant();
     ASSERT_NE(c, nullptr);
     EXPECT_TRUE(c->isFullyGrown());
+    EXPECT_EQ(can->getDurability(), 40);
 }
 
 // Using the tool on an empty cell should not crash.
@@ -391,6 +394,7 @@ TEST(Integration_WateringCan, ToolAttributesAreReadable) {
     WateringCan can;
     EXPECT_DOUBLE_EQ(can.getPrice(), 25.0);
     EXPECT_EQ(can.getDurability(), 50);
+    EXPECT_EQ(can.getMaxDurability(), 50);
     EXPECT_EQ(can.getName(), "Watering Can");
 }
 
@@ -588,6 +592,105 @@ TEST(Integration_Game, SaveGameWritesSaveTimestamp) {
     const std::int64_t afterSave = currentEpochSecondsForTest();
     EXPECT_GE(saveTimestamp, beforeSave);
     EXPECT_LE(saveTimestamp, afterSave);
+}
+
+TEST(Integration_Game, SaveGameWritesInventoryToolDurability) {
+    SaveFileGuard saveGuard;
+    Game game;
+    auto can = std::make_unique<WateringCan>();
+    can->setDurability(37);
+    ASSERT_TRUE(game.getPlayer().getInventory().addItem(std::move(can), 1));
+
+    game.saveGame();
+
+    std::ifstream in("save.json");
+    nlohmann::json saved;
+    in >> saved;
+
+    ASSERT_TRUE(saved.contains("inventory"));
+    ASSERT_TRUE(saved["inventory"].contains("items"));
+    const auto& items = saved["inventory"]["items"];
+    auto it = std::find_if(items.begin(), items.end(), [](const nlohmann::json& item) {
+        return item.value("name", "") == "Watering Can";
+    });
+
+    ASSERT_NE(it, items.end());
+    EXPECT_EQ((*it)["quantity"].get<int>(), 1);
+    ASSERT_TRUE(it->contains("durability"));
+    EXPECT_EQ((*it)["durability"].get<int>(), 37);
+}
+
+TEST(Integration_Game, LoadGameRestoresToolInventoryAsToolWithDurability) {
+    SaveFileGuard saveGuard;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 0}}},
+        {"inventory", {{"items", nlohmann::json::array({
+            {{"name", "Watering Can"}, {"quantity", 1}, {"durability", 37}}
+        })}}},
+        {"garden", {{"plants", nlohmann::json::array()}}},
+        {"game", {{"tick", 0}, {"initialized", true}, {"saveTimestamp", currentEpochSecondsForTest() + 60}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    Inventory& inventory = game.getPlayer().getInventory();
+    EXPECT_EQ(inventory.getQuantity("Watering Can"), 1);
+
+    Tool* tool = dynamic_cast<Tool*>(inventory.getItemPrototype("Watering Can"));
+    ASSERT_NE(tool, nullptr);
+    EXPECT_EQ(tool->getDurability(), 37);
+    EXPECT_EQ(tool->getMaxDurability(), 50);
+}
+
+TEST(Integration_Game, LoadGameTreatsMissingToolDurabilityAsFull) {
+    SaveFileGuard saveGuard;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 0}}},
+        {"inventory", {{"items", nlohmann::json::array({
+            {{"name", "Watering Can"}, {"quantity", 1}}
+        })}}},
+        {"garden", {{"plants", nlohmann::json::array()}}},
+        {"game", {{"tick", 0}, {"initialized", true}, {"saveTimestamp", currentEpochSecondsForTest() + 60}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    Tool* tool = dynamic_cast<Tool*>(game.getPlayer().getInventory().getItemPrototype("Watering Can"));
+    ASSERT_NE(tool, nullptr);
+    EXPECT_EQ(tool->getDurability(), tool->getMaxDurability());
+}
+
+TEST(Integration_Game, LoadGameResetsSavedBrokenToolStackToFullDurability) {
+    SaveFileGuard saveGuard;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 0}}},
+        {"inventory", {{"items", nlohmann::json::array({
+            {{"name", "Watering Can"}, {"quantity", 2}, {"durability", 0}}
+        })}}},
+        {"garden", {{"plants", nlohmann::json::array()}}},
+        {"game", {{"tick", 0}, {"initialized", true}, {"saveTimestamp", currentEpochSecondsForTest() + 60}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    Inventory& inventory = game.getPlayer().getInventory();
+    EXPECT_EQ(inventory.getQuantity("Watering Can"), 2);
+
+    Tool* tool = dynamic_cast<Tool*>(inventory.getItemPrototype("Watering Can"));
+    ASSERT_NE(tool, nullptr);
+    EXPECT_EQ(tool->getDurability(), tool->getMaxDurability());
 }
 
 TEST(Integration_Game, SaveGameWritesGardenPlantMutations) {

@@ -10,6 +10,10 @@ public:
 
     using Tool::getPrice;
     using Tool::getDurability;
+    using Tool::getMaxDurability;
+    using Tool::isBroken;
+    using Tool::resetDurability;
+    using Tool::setDurability;
     using Item::getName;
     using Item::getDescr;
     using Item::id;

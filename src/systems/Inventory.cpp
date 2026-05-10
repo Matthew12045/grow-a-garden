@@ -4,7 +4,7 @@
 Inventory::Inventory(int maxSlots) : maxSlots_(maxSlots) {}
 
 bool Inventory::addItem(std::unique_ptr<Item> item, int qty) {
-    if (qty <= 0) return false;
+    if (!item || qty <= 0) return false;
 
     std::string name = item->getName();
 
@@ -49,6 +49,26 @@ int Inventory::getQuantity(const std::string& itemName) const {
         return it->second;
     }
     return 0;
+}
+
+Item* Inventory::getItemPrototype(const std::string& itemName) {
+    for (const auto& item : itemPrototypes_) {
+        if (item && item->getName() == itemName) {
+            return item.get();
+        }
+    }
+
+    return nullptr;
+}
+
+const Item* Inventory::getItemPrototype(const std::string& itemName) const {
+    for (const auto& item : itemPrototypes_) {
+        if (item && item->getName() == itemName) {
+            return item.get();
+        }
+    }
+
+    return nullptr;
 }
 
 bool Inventory::isFull() const {

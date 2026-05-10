@@ -19,14 +19,7 @@ bool Player::sell(Item* item, Shop* shop) {
         return false;
     }
 
-    const Item* ownedPrototype = nullptr;
-    for (const auto& ownedItem : inventory_.getItems()) {
-        if (ownedItem && ownedItem->getName() == itemName) {
-            ownedPrototype = ownedItem.get();
-            break;
-        }
-    }
-
+    const Item* ownedPrototype = inventory_.getItemPrototype(itemName);
     if (!ownedPrototype) {
         return false;
     }

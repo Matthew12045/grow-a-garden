@@ -4,7 +4,11 @@
 #include "../entities/Mutation.h"
 #include "../systems/RaccoonEvent.h"
 #include "../game/PlantFactory.h"
+#include "../items/FertilizerTool.h"
+#include "../items/Item.h"
 #include "../items/Seed.h"
+#include "../items/Tool.h"
+#include "../items/WateringCan.h"
 #include "../ui/DrawUtils.h"
 #include <chrono>
 #include <cstdint>
@@ -36,6 +40,51 @@ const ShopItemDef* findDefByCropName(const std::vector<ShopItemDef>& catalogue, 
         return def.cropName == cropName;
     });
     return (it != catalogue.end()) ? &(*it) : nullptr;
+}
+
+std::unique_ptr<Item> makeInventoryItemFromDef(const ShopItemDef& def) {
+    if (def.type == ShopItemType::SEED) {
+        return std::make_unique<Seed>(1, def.name, def.description, def.buyPrice, def.cropName);
+    }
+
+    if (def.name == "Watering Can") {
+        return std::make_unique<WateringCan>(def.buyPrice);
+    }
+
+    if (def.name == "Fertilizer") {
+        return std::make_unique<FertilizerTool>();
+    }
+
+    return nullptr;
+}
+
+void restoreToolDurabilityFromSave(Tool& tool, const json& itemEntry, int quantity) {
+    if (itemEntry.contains("durability")) {
+        if (itemEntry["durability"].is_number_integer() || itemEntry["durability"].is_number_unsigned()) {
+            const auto maxDurability = static_cast<std::int64_t>(tool.getMaxDurability());
+            std::int64_t savedDurability = 0;
+            if (itemEntry["durability"].is_number_unsigned()) {
+                const auto unsignedDurability = itemEntry["durability"].get<std::uint64_t>();
+                savedDurability = unsignedDurability > static_cast<std::uint64_t>(maxDurability)
+                    ? maxDurability
+                    : static_cast<std::int64_t>(unsignedDurability);
+            } else {
+                savedDurability = itemEntry["durability"].get<std::int64_t>();
+            }
+            const auto clampedDurability = std::clamp(savedDurability, std::int64_t{0}, maxDurability);
+            tool.setDurability(static_cast<int>(clampedDurability));
+        } else {
+            std::cerr << "Warning: Invalid durability for tool '"
+                      << tool.getName() << "', loading at full durability" << std::endl;
+            tool.resetDurability();
+        }
+    } else {
+        tool.resetDurability();
+    }
+
+    if (quantity > 0 && tool.isBroken()) {
+        tool.resetDurability();
+    }
 }
 
 bool loadMutationList(const json& mutationValues, std::vector<MutationType>& mutations) {
@@ -200,10 +249,16 @@ void Game::saveGame() {
             std::string itemName = item->getName();
             int qty = player_.getInventory().getQuantity(itemName);
             if (qty > 0) {
-                invItems.push_back({
+                json itemJson = {
                     {"name", itemName},
                     {"quantity", qty}
-                });
+                };
+
+                if (const auto* tool = dynamic_cast<const Tool*>(item.get())) {
+                    itemJson["durability"] = tool->getDurability();
+                }
+
+                invItems.push_back(std::move(itemJson));
             }
         }
         j["inventory"] = json::object();
@@ -317,12 +372,22 @@ void Game::loadGame() {
                 int quantity = itemEntry["quantity"];
                 const ShopItemDef* def = findDefByName(catalogue, itemName);
                 if (!def) {
-                    std::cerr << "Warning: Unknown seed type '" << itemName << "', skipping" << std::endl;
+                    std::cerr << "Warning: Unknown inventory item '" << itemName << "', skipping" << std::endl;
                     continue;
                 }
 
-                auto seed = std::make_unique<Seed>(1, def->name, def->description, def->buyPrice, def->cropName);
-                player_.getInventory().addItem(std::move(seed), quantity);
+                auto item = makeInventoryItemFromDef(*def);
+                if (!item) {
+                    std::cerr << "Warning: Could not restore inventory item '"
+                              << itemName << "', skipping" << std::endl;
+                    continue;
+                }
+
+                if (auto* tool = dynamic_cast<Tool*>(item.get())) {
+                    restoreToolDurabilityFromSave(*tool, itemEntry, quantity);
+                }
+
+                player_.getInventory().addItem(std::move(item), quantity);
             }
         }
         

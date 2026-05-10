@@ -329,22 +329,58 @@ void GameScreen::sellGroup(const std::vector<int>& indices) {
 }
 
 void GameScreen::useToolOnCell(int gx, int gy) {
-    const auto* def = findItem(equippedTool_);
-    if (!def || def->toolBoost == 0) return;
+    if (equippedTool_.empty()) return;
+
+    const std::string toolItemName = equippedTool_;
+    Inventory& inventory = game_.getPlayer().getInventory();
+    Item* ownedItem = inventory.getItemPrototype(toolItemName);
+    Tool* tool = dynamic_cast<Tool*>(ownedItem);
+    const auto* def = findItem(toolItemName);
+    if (!tool || inventory.getQuantity(toolItemName) <= 0) {
+        equippedTool_.clear();
+        setStatus("No " + toolItemName + " available.", 2.0f);
+        return;
+    }
 
     Cell&  cell  = game_.getGarden().getCell(gx, gy);
-    Plant* plant = cell.getPlant();
-    if (!plant) return;
+    const int durabilityBefore = tool->getDurability();
+    tool->use(cell, game_.getPlayer());
+    const int durabilityAfterUse = tool->getDurability();
+    if (durabilityAfterUse == durabilityBefore) {
+        return;
+    }
 
-    plant->grow((std::size_t)def->toolBoost);
-    game_.getPlayer().getInventory().removeItem(equippedTool_, 1);
+    const bool broke = tool->isBroken();
+    int displayDurability = durabilityAfterUse;
+    int displayMaxDurability = tool->getMaxDurability();
+    if (broke) {
+        inventory.removeItem(toolItemName, 1);
+        if (inventory.getQuantity(toolItemName) > 0) {
+            if (Tool* nextTool = dynamic_cast<Tool*>(inventory.getItemPrototype(toolItemName))) {
+                nextTool->resetDurability();
+                displayDurability = nextTool->getDurability();
+                displayMaxDurability = nextTool->getMaxDurability();
+            }
+        } else {
+            equippedTool_.clear();
+        }
+    }
 
-    std::string toolName = def->cropName;
-    std::string boost    = std::to_string(def->toolBoost);
-    if (game_.getPlayer().getInventory().getQuantity(equippedTool_) == 0)
+    const std::string toolName = def ? def->cropName : toolItemName;
+    std::ostringstream ss;
+    ss << "Used " << toolName << "! ";
+    if (broke && equippedTool_.empty()) {
+        ss << "Tool broke.";
+    } else if (broke) {
+        ss << "Tool broke. Next: " << displayDurability << "/" << displayMaxDurability;
+    } else {
+        ss << "Durability " << displayDurability << "/" << displayMaxDurability;
+    }
+
+    if (inventory.getQuantity(toolItemName) == 0)
         equippedTool_.clear();
 
-    setStatus("Used " + toolName + "! +" + boost + " growth ticks");
+    setStatus(ss.str());
     session_.save();
 }
 

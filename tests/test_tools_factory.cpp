@@ -63,6 +63,7 @@ TEST(FertilizerToolTest, UseAdvancesPlantByTwentyTicks) {
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->getStage(), 2);
     EXPECT_EQ(plant->getTimeToGrowth(), 30u);
+    EXPECT_EQ(fertilizer.getDurability(), 24);
 }
 
 TEST(FertilizerToolTest, RepeatedUseCanFullyGrowPlant) {
@@ -79,6 +80,54 @@ TEST(FertilizerToolTest, RepeatedUseCanFullyGrowPlant) {
 
     fertilizer.use(cell, player);
     EXPECT_TRUE(cell.getPlant()->isFullyGrown());
+    EXPECT_EQ(fertilizer.getDurability(), 22);
+}
+
+TEST(WateringCanToolTest, UseAdvancesPlantAndConsumesDurability) {
+    Cell cell;
+    Player player;
+    WateringCan can;
+
+    ASSERT_TRUE(cell.setPlant(std::make_unique<Plant>(
+        1, "Carrot", 0, 5, 10, 0, 30.0, false, 0)));
+
+    can.use(cell, player);
+    Plant* plant = cell.getPlant();
+
+    ASSERT_NE(plant, nullptr);
+    EXPECT_EQ(plant->getStage(), 0);
+    EXPECT_EQ(plant->getTimeToGrowth(), 45u);
+    EXPECT_EQ(can.getDurability(), 49);
+}
+
+TEST(ToolDurabilityTest, EmptyCellUseDoesNotConsumeDurability) {
+    Cell cell;
+    Player player;
+    WateringCan can;
+    FertilizerTool fertilizer;
+
+    can.use(cell, player);
+    fertilizer.use(cell, player);
+
+    EXPECT_EQ(can.getDurability(), can.getMaxDurability());
+    EXPECT_EQ(fertilizer.getDurability(), fertilizer.getMaxDurability());
+}
+
+TEST(ToolDurabilityTest, BrokenToolDoesNotApplyEffect) {
+    Cell cell;
+    Player player;
+    WateringCan can;
+
+    ASSERT_TRUE(cell.setPlant(std::make_unique<Plant>(
+        1, "Carrot", 0, 5, 10, 0, 30.0, false, 0)));
+    can.setDurability(0);
+
+    can.use(cell, player);
+
+    ASSERT_NE(cell.getPlant(), nullptr);
+    EXPECT_EQ(cell.getPlant()->getTimeToGrowth(), 50u);
+    EXPECT_TRUE(can.isBroken());
+    EXPECT_EQ(can.getDurability(), 0);
 }
 
 TEST(ToolCatalogueTest, ToolBoostsMatchConcreteToolConstants) {

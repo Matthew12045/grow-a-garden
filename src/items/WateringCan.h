@@ -19,6 +19,10 @@ public:
     // ── Lift Item's protected accessors to public ────────────────────────
     using Tool::getPrice;
     using Tool::getDurability;
+    using Tool::getMaxDurability;
+    using Tool::isBroken;
+    using Tool::resetDurability;
+    using Tool::setDurability;
 
     // These live on Item but are protected there; expose them here so
     // Inventory (and any other system that holds an Item*) can reach them.
