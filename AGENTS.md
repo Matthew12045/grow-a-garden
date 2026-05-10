@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Top-down 2D farming simulator built in **C++ with SFML 2.6**.
+Top-down 2D farming simulator built in **C++ with SFML 3.x**.
 Build system: **CMake + MinGW-w64** (Windows) / **g++** (Linux).
 Currency in-game is called **sheckles** — do not rename or correct this.
 
@@ -213,7 +213,7 @@ When generating code that touches shared systems (Garden, Plant, TickSystem), be
 ## Common Pitfalls
 
 - **SFML DLL not found (Windows):** copy all `.dll` files from `C:\SFML\bin` next to the `.exe`
-- **CMake can't find SFML:** verify `-DSFML_DIR="C:/SFML/lib/cmake/SFML"` matches your install path
+- **CMake can't find SFML:** verify `-DSFML_DIR="C:/SFML/lib/cmake/SFML"` matches your SFML 3 install path
 - **clangd-lsp not picking up SFML headers:** make sure `compile_commands.json` exists at project root (see build commands above)
 - **`Plant` has a typo in private method:** `clacPrice()` — should be `calcPrice()`. Fix when touching that file.
 
