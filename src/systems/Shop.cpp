@@ -10,23 +10,22 @@ void Shop::addAvailableItem(std::unique_ptr<Item> item) {
 bool Shop::processPurchase(Item* item, Player* player) {
     if (!item || !player) return false;
 
-    // Check if player has enough sheckles
-    if (player->getSheckles() < item->getPrice()) {
+    const double price = item->getPrice();
+    if (player->getSheckles() < price) {
         return false; // Not enough money
     }
 
-    // Try to add to inventory (we need a copy of the item, but Item is abstract)
-    // Since Item has no clone(), we'd typically need one. But for this UML,
-    // maybe we just deduct sheckles and assume player gets it.
-    // However, UML Inventory takes unique_ptr.
-    // For now, let's just deduct sheckles.
-    if (player->deductSheckles(item->getPrice())) {
-        // Player deducts sheckles
-        // Ideally player->getInventory().addItem(item->clone(), 1);
-        return true;
+    auto purchasedItem = item->clone();
+    if (!purchasedItem || !player->getInventory().addItem(std::move(purchasedItem), 1)) {
+        return false;
     }
 
-    return false;
+    if (!player->deductSheckles(static_cast<float>(price))) {
+        player->getInventory().removeItem(item->getName(), 1);
+        return false;
+    }
+
+    return true;
 }
 
 bool Shop::processSale(std::unique_ptr<Item> item, Player* player) {

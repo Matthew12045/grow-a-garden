@@ -14,5 +14,7 @@ public:
     using Item::getDescr;
     using Item::id;
 
+    std::unique_ptr<Item> clone() const override;
+
     void use(Cell& cell, Player& player) override;
 };

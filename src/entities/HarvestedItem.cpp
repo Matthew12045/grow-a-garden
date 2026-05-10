@@ -31,6 +31,11 @@ HarvestedItem::HarvestedItem(double finalSellPrice, std::vector<MutationType> mu
 	  mutations_(std::move(mutations)),
 	  finalSellPrice_(finalSellPrice) {}
 
+std::unique_ptr<Item> HarvestedItem::clone() const
+{
+	return std::make_unique<HarvestedItem>(*this);
+}
+
 double HarvestedItem::getPrice() const
 {
 	return finalSellPrice_;

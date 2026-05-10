@@ -36,5 +36,9 @@ public:
                  int          durability)
         : Tool(id, std::move(name), std::move(desc), price, durability) {}
 
+    std::unique_ptr<Item> clone() const override {
+        return std::make_unique<ConcreteTool>(*this);
+    }
+
     void use(Cell& /*cell*/, Player& /*player*/) override { ++useCalls; }
 };

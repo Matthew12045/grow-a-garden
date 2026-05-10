@@ -2,8 +2,10 @@
 #include "../src/systems/Inventory.h"
 #include "../src/systems/Shop.h"
 #include "../src/items/Seed.h"
+#include "../src/items/WateringCan.h"
 #include "helpers/ConcreteClasses.h"
 #include <memory>
+#include <string>
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -179,6 +181,61 @@ TEST(ShopTest, ProcessPurchaseReturnsTrueForValidArgs) {
     Player player;
     player.addSheckles(100.0); // Give player enough sheckles to buy the item
     EXPECT_TRUE(shop.processPurchase(seed.get(), &player));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 95.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 1);
+}
+
+TEST(ShopTest, ProcessPurchaseLeavesShopItemAvailable) {
+    Shop shop;
+    shop.addAvailableItem(makeSeed("Carrot Seed", 10.0));
+    Player player;
+    player.addSheckles(100.0f);
+
+    Item* shopItem = shop.getAvailableItems().front().get();
+    ASSERT_NE(shopItem, nullptr);
+    EXPECT_TRUE(shop.processPurchase(shopItem, &player));
+
+    ASSERT_EQ(shop.getAvailableItems().size(), 1u);
+    ASSERT_NE(shop.getAvailableItems().front(), nullptr);
+    EXPECT_EQ(shop.getAvailableItems().front()->getName(), "Carrot Seed");
+    EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 1);
+}
+
+TEST(ShopTest, ProcessPurchaseReturnsFalseWhenPlayerCannotAffordItem) {
+    Shop shop;
+    auto seed = makeSeed("Carrot Seed", 10.0);
+    Player player;
+    player.addSheckles(5.0f);
+
+    EXPECT_FALSE(shop.processPurchase(seed.get(), &player));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 5.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 0);
+}
+
+TEST(ShopTest, ProcessPurchaseReturnsFalseWhenInventoryIsFull) {
+    Shop shop;
+    auto seed = makeSeed("Overflow Seed", 10.0);
+    Player player;
+    player.addSheckles(100.0f);
+
+    for (int i = 0; i < 20; ++i) {
+        ASSERT_TRUE(player.getInventory().addItem(makeSeed("Seed " + std::to_string(i)), 1));
+    }
+
+    EXPECT_FALSE(shop.processPurchase(seed.get(), &player));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 100.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Overflow Seed"), 0);
+}
+
+TEST(ShopTest, ProcessPurchaseStoresToolInInventory) {
+    Shop shop;
+    WateringCan can;
+    Player player;
+    player.addSheckles(100.0f);
+
+    EXPECT_TRUE(shop.processPurchase(&can, &player));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 75.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Watering Can"), 1);
 }
 
 TEST(ShopTest, ProcessPurchaseReturnsFalseForNullItem) {
@@ -197,6 +254,7 @@ TEST(ShopTest, ProcessSaleReturnsTrueForValidArgs) {
     Shop shop;
     Player player;
     EXPECT_TRUE(shop.processSale(makeSeed("Carrot Seed"), &player));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 5.0f);
 }
 
 TEST(ShopTest, ProcessSaleReturnsFalseForNullItem) {
@@ -208,4 +266,36 @@ TEST(ShopTest, ProcessSaleReturnsFalseForNullItem) {
 TEST(ShopTest, ProcessSaleReturnsFalseForNullPlayer) {
     Shop shop;
     EXPECT_FALSE(shop.processSale(makeSeed("Carrot Seed"), nullptr));
+}
+
+TEST(PlayerShopTest, PlayerBuyAddsItemAndDeductsSheckles) {
+    Shop shop;
+    shop.addAvailableItem(makeSeed("Carrot Seed", 10.0));
+    Player player;
+    player.addSheckles(100.0f);
+
+    ASSERT_TRUE(player.buy(shop.getAvailableItems().front().get(), &shop));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 90.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 1);
+}
+
+TEST(PlayerShopTest, PlayerSellRemovesOwnedItemAndAddsSheckles) {
+    Shop shop;
+    auto seed = makeSeed("Carrot Seed", 10.0);
+    Player player;
+    ASSERT_TRUE(player.getInventory().addItem(seed->clone(), 2));
+
+    EXPECT_TRUE(player.sell(seed.get(), &shop));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 10.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 1);
+}
+
+TEST(PlayerShopTest, PlayerSellFailsForUnownedItem) {
+    Shop shop;
+    auto seed = makeSeed("Carrot Seed", 10.0);
+    Player player;
+
+    EXPECT_FALSE(player.sell(seed.get(), &shop));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 0.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 0);
 }

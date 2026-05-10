@@ -2,12 +2,17 @@
 #include "../world/Cell.h"
 #include "../core/Player.h"
 
-WateringCan::WateringCan()
+WateringCan::WateringCan(double basePrice)
     : Tool(/*id*/          1,
            /*name*/        "Watering Can",
            /*description*/ "Waters crops — instantly advances growth by 5 ticks.",
-           /*basePrice*/   25.0,
+           /*basePrice*/   basePrice,
            /*durability*/  50) {}
+
+std::unique_ptr<Item> WateringCan::clone() const
+{
+    return std::make_unique<WateringCan>(*this);
+}
 
 void WateringCan::use(Cell& cell, Player& /*player*/)
 {

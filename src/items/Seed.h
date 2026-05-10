@@ -15,6 +15,7 @@ public:
 		 double basePrice,
 		 std::string cropType);
 
+	std::unique_ptr<Item> clone() const override;
 	double getPrice() const override;
 	const std::string& getCropType() const;
 };

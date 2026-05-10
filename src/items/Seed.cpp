@@ -10,6 +10,11 @@ Seed::Seed(std::size_t id,
 	: Item(id, std::move(name), std::move(description), basePrice),
 	  cropType_(std::move(cropType)) {}
 
+std::unique_ptr<Item> Seed::clone() const
+{
+	return std::make_unique<Seed>(*this);
+}
+
 double Seed::getPrice() const
 {
 	return basePrice_;

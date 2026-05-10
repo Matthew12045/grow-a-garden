@@ -9,6 +9,35 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <memory>
+
+namespace {
+std::unique_ptr<Item> makeShopItem(const ShopItemDef& def) {
+    if (def.type == ShopItemType::SEED) {
+        return std::make_unique<Seed>(1, def.name, def.description, def.buyPrice, def.cropName);
+    }
+
+    if (def.name == "Watering Can") {
+        return std::make_unique<WateringCan>(def.buyPrice);
+    }
+
+    if (def.name == "Fertilizer") {
+        return std::make_unique<FertilizerTool>();
+    }
+
+    return nullptr;
+}
+
+Item* findShopItemByName(Shop& shop, const std::string& name) {
+    for (const auto& item : shop.getAvailableItems()) {
+        if (item && item->getName() == name) {
+            return item.get();
+        }
+    }
+
+    return nullptr;
+}
+}
 
 // ─────────────────────────────────────────────────────────────────────
 //  Constructor
@@ -33,9 +62,7 @@ GameScreen::GameScreen(sf::RenderWindow& window, sf::Font& font)
 
 void GameScreen::setupShop() {
     for (const auto& def : catalogue_) {
-        if (def.type == ShopItemType::SEED)
-            shop_.addAvailableItem(std::make_unique<Seed>(
-                1, def.name, def.description, def.buyPrice, def.cropName));
+        shop_.addAvailableItem(makeShopItem(def));
     }
 }
 
@@ -232,9 +259,24 @@ void GameScreen::harvestCell(int gx, int gy) {
 void GameScreen::sellAll() {
     if (harvestBasket_.empty()) { setStatus("Harvest basket is empty!"); return; }
     float total = 0.f;
-    for (const auto& e : harvestBasket_) total += (float)e.item_.getPrice();
-    harvestBasket_.clear();
-    game_.getPlayer().addSheckles(total);
+    int soldCount = 0;
+
+    for (auto it = harvestBasket_.begin(); it != harvestBasket_.end();) {
+        const float price = static_cast<float>(it->item_.getPrice());
+        if (shop_.processSale(it->item_.clone(), &game_.getPlayer())) {
+            total += price;
+            ++soldCount;
+            it = harvestBasket_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    if (soldCount == 0) {
+        setStatus("Could not sell basket items.", 2.5f);
+        return;
+    }
+
     std::ostringstream ss;
     ss << "Sold for +" << std::fixed << std::setprecision(0) << total << " sheckles!";
     setStatus(ss.str(), 3.f);
@@ -245,8 +287,12 @@ void GameScreen::sellOne(int index) {
     if (index < 0 || index >= (int)harvestBasket_.size()) return;
     float price = (float)harvestBasket_[index].item_.getPrice();
     std::string crop = harvestBasket_[index].cropName_;
+    if (!shop_.processSale(harvestBasket_[index].item_.clone(), &game_.getPlayer())) {
+        setStatus("Could not sell " + crop + ".", 2.5f);
+        return;
+    }
+
     harvestBasket_.erase(harvestBasket_.begin() + index);
-    game_.getPlayer().addSheckles(price);
     std::ostringstream ss;
     ss << "Sold " << crop << " for +" << std::fixed << std::setprecision(0) << price << " S!";
     setStatus(ss.str(), 2.5f);
@@ -265,14 +311,16 @@ void GameScreen::sellGroup(const std::vector<int>& indices) {
 
     for (int index : sorted) {
         if (index < 0 || index >= static_cast<int>(harvestBasket_.size())) continue;
-        total += static_cast<float>(harvestBasket_[index].item_.getPrice());
-        harvestBasket_.erase(harvestBasket_.begin() + index);
-        ++soldCount;
+        const float price = static_cast<float>(harvestBasket_[index].item_.getPrice());
+        if (shop_.processSale(harvestBasket_[index].item_.clone(), &game_.getPlayer())) {
+            total += price;
+            harvestBasket_.erase(harvestBasket_.begin() + index);
+            ++soldCount;
+        }
     }
 
     if (soldCount == 0) return;
 
-    game_.getPlayer().addSheckles(total);
     std::ostringstream ss;
     ss << "Sold x" << soldCount << " " << crop << " for +"
        << std::fixed << std::setprecision(0) << total << " S!";
@@ -301,24 +349,19 @@ void GameScreen::useToolOnCell(int gx, int gy) {
 }
 
 void GameScreen::buyItem(const ShopItemDef& def) {
-    if (game_.getPlayer().getSheckles() < def.buyPrice) {
-        setStatus("Not enough sheckles! (need " + std::to_string((int)def.buyPrice) + ")");
+    Item* item = findShopItemByName(shop_, def.name);
+    if (!item) {
+        setStatus("Missing shop item for " + def.cropName, 2.5f);
         return;
     }
-    game_.getPlayer().deductSheckles(def.buyPrice);
 
-    if (def.type == ShopItemType::TOOL) {
-        if (def.name == "Watering Can") {
-            auto item = std::make_unique<WateringCan>();
-            game_.getPlayer().getInventory().addItem(std::move(item), 1);
-        } else if (def.name == "Fertilizer") {
-            auto item = std::make_unique<FertilizerTool>();
-            game_.getPlayer().getInventory().addItem(std::move(item), 1);
+    if (!game_.getPlayer().buy(item, &shop_)) {
+        if (game_.getPlayer().getSheckles() < item->getPrice()) {
+            setStatus("Not enough sheckles! (need " + std::to_string((int)item->getPrice()) + ")");
+        } else {
+            setStatus("Inventory is full!", 2.5f);
         }
-    } else {
-        auto item = std::make_unique<Seed>(1, def.name, def.description,
-                                           def.buyPrice, def.cropName);
-        game_.getPlayer().getInventory().addItem(std::move(item), 1);
+        return;
     }
 
     if (def.type == ShopItemType::SEED) {

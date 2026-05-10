@@ -14,7 +14,7 @@ class WateringCan : public Tool {
 public:
     static constexpr int GROWTH_BOOST_TICKS = 5;  // ticks applied per use
 
-    WateringCan();
+    explicit WateringCan(double basePrice = 25.0);
 
     // ── Lift Item's protected accessors to public ────────────────────────
     using Tool::getPrice;
@@ -25,6 +25,8 @@ public:
     using Item::getName;
     using Item::getDescr;
     using Item::id;
+
+    std::unique_ptr<Item> clone() const override;
 
     // Grows the plant in `cell` by GROWTH_BOOST_TICKS ticks.
     void use(Cell& cell, Player& player) override;

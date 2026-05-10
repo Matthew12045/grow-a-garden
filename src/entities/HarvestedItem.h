@@ -15,6 +15,7 @@ public:
 	HarvestedItem();
 	HarvestedItem(double finalSellPrice, std::vector<MutationType> mutations);
 
+	std::unique_ptr<Item> clone() const override;
 	double getPrice() const override;
 	const std::vector<MutationType>& getMutationList() const;
 	std::string getMutations() const;

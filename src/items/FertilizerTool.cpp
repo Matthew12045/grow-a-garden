@@ -10,6 +10,11 @@ FertilizerTool::FertilizerTool()
            /*basePrice*/   50.0,
            /*durability*/  25) {}
 
+std::unique_ptr<Item> FertilizerTool::clone() const
+{
+    return std::make_unique<FertilizerTool>(*this);
+}
+
 void FertilizerTool::use(Cell& cell, Player& /*player*/)
 {
     Plant* plant = cell.getPlant();

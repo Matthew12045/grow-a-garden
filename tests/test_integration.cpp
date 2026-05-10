@@ -250,6 +250,7 @@ TEST(Integration_ShopEconomy, PlayerBuysCarrotSeed) {
 
     EXPECT_TRUE(bought);
     EXPECT_FLOAT_EQ(player.getSheckles(), 90.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 1);
 }
 
 // Player cannot buy if they don't have enough sheckles.
@@ -264,6 +265,20 @@ TEST(Integration_ShopEconomy, PlayerCannotBuyWhenBroke) {
     Item* seedPtr = shop.getAvailableItems().front().get();
     EXPECT_FALSE(player.buy(seedPtr, &shop));
     EXPECT_FLOAT_EQ(player.getSheckles(), 5.0f);  // unchanged
+    EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 0);
+}
+
+TEST(Integration_ShopEconomy, PlayerBuysWateringCanThroughShopApi) {
+    Shop shop;
+    Player player;
+    player.addSheckles(100.0f);
+
+    shop.addAvailableItem(std::make_unique<WateringCan>());
+    ASSERT_FALSE(shop.getAvailableItems().empty());
+
+    EXPECT_TRUE(player.buy(shop.getAvailableItems().front().get(), &shop));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 75.0f);
+    EXPECT_EQ(player.getInventory().getQuantity("Watering Can"), 1);
 }
 
 // Selling a harvested carrot via the shop adds its price to player's sheckles.
@@ -279,6 +294,16 @@ TEST(Integration_ShopEconomy, SellingHarvestedCarrotAddsSheckles) {
 
     shop.processSale(std::make_unique<HarvestedItem>(item), &player);
     EXPECT_FLOAT_EQ(player.getSheckles(), static_cast<float>(price));
+}
+
+TEST(Integration_ShopEconomy, SellingClonedHarvestedItemAddsSheckles) {
+    Shop shop;
+    Player player;
+    HarvestedItem item(45.0, {MutationType::WET});
+
+    EXPECT_TRUE(shop.processSale(item.clone(), &player));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 45.0f);
+    EXPECT_DOUBLE_EQ(item.getPrice(), 45.0);
 }
 
 // Sell a mutation-boosted carrot — shop adds the mutated price.
