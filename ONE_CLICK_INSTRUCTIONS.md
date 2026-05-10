@@ -1,4 +1,4 @@
-# Grow A Garden One-Click Instructions
+# Grow A Garden Launch Instructions
 
 Send this to a friend who wants to run the game on Windows.
 
@@ -16,7 +16,7 @@ Install these before running the game:
 
 1. Download or clone the project.
 2. Open the project folder.
-3. Double-click `1-click.bat`.
+3. Double-click `launch.bat`.
 4. Wait for the first build to finish.
 5. The game opens automatically when the build succeeds.
 
@@ -24,7 +24,7 @@ The first run can take a few minutes because CMake downloads and builds SFML and
 
 ## Important Notes
 
-- Keep `1-click.bat` in the project root.
+- Keep `launch.bat` in the project root.
 - Run it from the same folder as `CMakeLists.txt` and the `assets` folder.
 - If the black window shows an error, make sure CMake and a C++ compiler are installed and available on PATH.
 - After the first successful build, future launches are faster.

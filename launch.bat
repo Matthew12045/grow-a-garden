@@ -1,11 +1,12 @@
 @echo off
 setlocal
-title Grow A Garden - 1 Click
+title Grow A Garden - Launcher
 
 cd /d "%~dp0"
 
 set "BUILD_DIR=build"
 set "EXE="
+set "SOURCE_DIR=%CD:\=/%"
 set "CMAKE_COMMON=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGROW_A_GARDEN_BUILD_TESTS=OFF"
 
 where cmake >nul 2>nul
@@ -16,11 +17,21 @@ if not exist "%BUILD_DIR%" (
 )
 
 if exist "%BUILD_DIR%\CMakeCache.txt" (
+    findstr /I /L /C:"CMAKE_HOME_DIRECTORY:INTERNAL=%SOURCE_DIR%" "%BUILD_DIR%\CMakeCache.txt" >nul 2>nul
+    if errorlevel 1 (
+        echo.
+        echo Recreating "%BUILD_DIR%" because its CMake cache belongs to another folder.
+        cmake -E rm -rf "%BUILD_DIR%" || goto :build_failed
+        mkdir "%BUILD_DIR%" || goto :build_failed
+        call :configure || goto :build_failed
+        goto :build_ready
+    )
     cmake -S . -B "%BUILD_DIR%" %CMAKE_COMMON% || goto :build_failed
 ) else (
     call :configure || goto :build_failed
 )
 
+:build_ready
 cmake --build "%BUILD_DIR%" --target GrowAGarden --config Release || goto :build_failed
 
 if exist "%BUILD_DIR%\compile_commands.json" (
