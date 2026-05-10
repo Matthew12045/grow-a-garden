@@ -1,11 +1,13 @@
 #include "Game.h"
 #include "../game/HarvestBasket.h"
 #include "../game/ShopData.h"
+#include "../entities/Mutation.h"
 #include "../systems/RaccoonEvent.h"
 #include "../game/PlantFactory.h"
 #include "../items/Seed.h"
 #include "../ui/DrawUtils.h"
 #include <chrono>
+#include <cstdint>
 #include <iostream>
 #include <fstream>
 #include <cerrno>
@@ -17,6 +19,11 @@
 using json = nlohmann::json;
 
 namespace {
+std::int64_t currentEpochSeconds() {
+    const auto now = std::chrono::system_clock::now();
+    return std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+}
+
 const ShopItemDef* findDefByName(const std::vector<ShopItemDef>& catalogue, const std::string& name) {
     const auto it = std::find_if(catalogue.begin(), catalogue.end(), [&](const ShopItemDef& def) {
         return def.name == name;
@@ -48,6 +55,30 @@ bool loadMutationList(const json& mutationValues, std::vector<MutationType>& mut
     }
 
     return true;
+}
+
+json serializeMutationList(const std::vector<MutationType>& mutations) {
+    json mutationValues = json::array();
+    for (MutationType mutation : mutations) {
+        mutationValues.push_back(static_cast<int>(mutation));
+    }
+
+    return mutationValues;
+}
+
+Mutation makeMutationFromType(MutationType type) {
+    switch (type) {
+        case MutationType::WET:
+            return Mutation(MutationType::WET, 2.0f, WeatherType::RAIN);
+        case MutationType::SHOCKED:
+            return Mutation(MutationType::SHOCKED, 100.0f, WeatherType::THUNDER_STORM);
+        case MutationType::FROZEN:
+            return Mutation(MutationType::FROZEN, 5.0f, WeatherType::FROST);
+        case MutationType::CELESTIAL:
+            return Mutation(MutationType::CELESTIAL, 150.0f, WeatherType::METEOR_SHOWER);
+    }
+
+    return Mutation(MutationType::WET, 2.0f, WeatherType::RAIN);
 }
 
 json readExistingSaveForMerge() {
@@ -142,6 +173,7 @@ void Game::unbindHarvestBasket() {
 void Game::saveGame() {
     try {
         json j = readExistingSaveForMerge();
+        const std::int64_t saveTimestamp = currentEpochSeconds();
         
         // Save player sheckles
         j["player"] = json::object();
@@ -170,13 +202,15 @@ void Game::saveGame() {
                 const auto& cell = garden_.getCell(x, y);
                 Plant* plant = cell.getPlant();
                 if (plant != nullptr) {
+                    json mutations = serializeMutationList(plant->getMutations());
                     gardenPlants.push_back({
                         {"x", x},
                         {"y", y},
                         {"name", plant->getName()},
                         {"stage", plant->getStage()},
                         {"maxStages", plant->getMaxStages()},
-                        {"ticksElapsed", plant->getTicksElapsed()}
+                        {"ticksElapsed", plant->getTicksElapsed()},
+                        {"mutations", mutations}
                     });
                 }
             }
@@ -190,19 +224,15 @@ void Game::saveGame() {
         }
         j["game"]["tick"] = tickSystem_.getTick();
         j["game"]["initialized"] = initialized_;
+        j["game"]["saveTimestamp"] = saveTimestamp;
 
         if (hasHarvestBasket()) {
             json basket = json::array();
             for (const auto& entry : *harvestBasket_) {
-                json mutations = json::array();
-                for (MutationType mutation : entry.item_.getMutationList()) {
-                    mutations.push_back(static_cast<int>(mutation));
-                }
-
                 basket.push_back({
                     {"cropName", entry.cropName_},
                     {"price", entry.item_.getPrice()},
-                    {"mutations", mutations}
+                    {"mutations", serializeMutationList(entry.item_.getMutationList())}
                 });
             }
             j["harvestBasket"] = basket;
@@ -217,9 +247,7 @@ void Game::saveGame() {
         outFile << j.dump(2);
         outFile.close();
         
-        // Update save timestamp
-        auto now = std::chrono::system_clock::now();
-        lastSaveTimestamp_ = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+        lastSaveTimestamp_ = saveTimestamp;
         loadedSave_ = true;
         std::cout << "Game saved to save.json. Timestamp: " << lastSaveTimestamp_ << std::endl;
         
@@ -232,6 +260,7 @@ void Game::loadGame() {
     try {
         loadedSave_ = false;
         initialized_ = false;
+        lastSaveTimestamp_ = 0;
         std::ifstream inFile("save.json");
         if (!inFile.is_open()) {
             // File doesn't exist, no previous save to load
@@ -243,9 +272,19 @@ void Game::loadGame() {
         inFile.close();
 
         const auto catalogue = makeShopCatalogue();
+        const std::int64_t loadTimestamp = currentEpochSeconds();
+        lastSaveTimestamp_ = loadTimestamp;
 
         if (j.contains("game") && j["game"].is_object()) {
             initialized_ = j["game"].value("initialized", false);
+            const auto& gameData = j["game"];
+            if (gameData.contains("saveTimestamp") &&
+                (gameData["saveTimestamp"].is_number_integer() || gameData["saveTimestamp"].is_number_unsigned())) {
+                const std::int64_t savedTimestamp = gameData["saveTimestamp"].get<std::int64_t>();
+                if (savedTimestamp > 0) {
+                    lastSaveTimestamp_ = savedTimestamp;
+                }
+            }
         }
         
         // Restore player sheckles
@@ -292,6 +331,18 @@ void Game::loadGame() {
                     plant->grow(static_cast<std::size_t>(stage) * def->growTicks / std::max(def->maxStages, 1));
                 }
 
+                if (plantEntry.contains("mutations")) {
+                    std::vector<MutationType> mutations;
+                    if (loadMutationList(plantEntry["mutations"], mutations)) {
+                        for (MutationType mutation : mutations) {
+                            plant->addMutation(makeMutationFromType(mutation));
+                        }
+                    } else {
+                        std::cerr << "Warning: Invalid mutation data for crop '"
+                                  << cropName << "', loading without mutations" << std::endl;
+                    }
+                }
+
                 garden_.plantCrop(x, y, std::move(plant));
             }
         }
@@ -307,11 +358,8 @@ void Game::loadGame() {
         }
 
         restoreHarvestBasketFromSave(j, harvestBasket_);
-        
-        // Update save timestamp to current
-        auto now = std::chrono::system_clock::now();
-        lastSaveTimestamp_ = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
         loadedSave_ = true;
+        processOfflineProgress();
         
         std::cout << "Game loaded from save.json" << std::endl;
         
@@ -323,6 +371,27 @@ void Game::loadGame() {
 }
 
 void Game::processOfflineProgress() {
-    // Stub: offline progress is now handled in saveGame/loadGame
-    // This method is kept for backward compatibility with tests
+    if (!loadedSave_ || lastSaveTimestamp_ <= 0) {
+        return;
+    }
+
+    const std::int64_t now = currentEpochSeconds();
+    const std::int64_t elapsedSeconds = now - lastSaveTimestamp_;
+    if (elapsedSeconds <= 0) {
+        lastSaveTimestamp_ = now;
+        return;
+    }
+
+    const auto offlineTicks = static_cast<std::size_t>(elapsedSeconds);
+    tickSystem_.fastForward(offlineTicks);
+
+    for (int y = 0; y < garden_.getHeight(); ++y) {
+        for (int x = 0; x < garden_.getWidth(); ++x) {
+            if (Plant* plant = garden_.getCell(x, y).getPlant()) {
+                plant->grow(offlineTicks);
+            }
+        }
+    }
+
+    lastSaveTimestamp_ = now;
 }

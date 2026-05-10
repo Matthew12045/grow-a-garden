@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -38,6 +39,11 @@
 #include "../src/systems/RandomEventManager.h"
 
 namespace {
+std::int64_t currentEpochSecondsForTest() {
+    const auto now = std::chrono::system_clock::now();
+    return std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+}
+
 class SaveFileGuard {
 public:
     SaveFileGuard() {
@@ -520,6 +526,195 @@ TEST(Integration_Game, OfflineProgressFastForwardsTicks) {
     // tick count does not decrease.
     game.processOfflineProgress();
     EXPECT_GE(game.getTickSystem().getTick(), ticksBefore);
+}
+
+TEST(Integration_Game, SaveGameWritesSaveTimestamp) {
+    SaveFileGuard saveGuard;
+    const std::int64_t beforeSave = currentEpochSecondsForTest();
+
+    Game game;
+    game.saveGame();
+
+    std::ifstream in("save.json");
+    nlohmann::json saved;
+    in >> saved;
+
+    ASSERT_TRUE(saved.contains("game"));
+    ASSERT_TRUE(saved["game"].contains("saveTimestamp"));
+    ASSERT_TRUE(saved["game"]["saveTimestamp"].is_number_integer() ||
+                saved["game"]["saveTimestamp"].is_number_unsigned());
+
+    const std::int64_t saveTimestamp = saved["game"]["saveTimestamp"].get<std::int64_t>();
+    const std::int64_t afterSave = currentEpochSecondsForTest();
+    EXPECT_GE(saveTimestamp, beforeSave);
+    EXPECT_LE(saveTimestamp, afterSave);
+}
+
+TEST(Integration_Game, SaveGameWritesGardenPlantMutations) {
+    SaveFileGuard saveGuard;
+    Game game;
+    Garden& garden = game.getGarden();
+
+    ASSERT_TRUE(garden.plantCrop(0, 0, std::make_unique<Plant>(1, "Carrot", 0, 5, 10, 0, 30.0, false, 0)));
+    Plant* carrot = garden.getCell(0, 0).getPlant();
+    ASSERT_NE(carrot, nullptr);
+    carrot->addMutation(Mutation(MutationType::WET, 2.0f, WeatherType::RAIN));
+    carrot->addMutation(Mutation(MutationType::FROZEN, 5.0f, WeatherType::FROST));
+
+    game.saveGame();
+
+    std::ifstream in("save.json");
+    nlohmann::json saved;
+    in >> saved;
+
+    ASSERT_TRUE(saved.contains("garden"));
+    ASSERT_TRUE(saved["garden"].contains("plants"));
+    ASSERT_TRUE(saved["garden"]["plants"].is_array());
+    ASSERT_EQ(saved["garden"]["plants"].size(), 1u);
+
+    const auto& mutations = saved["garden"]["plants"][0]["mutations"];
+    ASSERT_TRUE(mutations.is_array());
+    ASSERT_EQ(mutations.size(), 2u);
+    EXPECT_EQ(mutations[0].get<int>(), static_cast<int>(MutationType::WET));
+    EXPECT_EQ(mutations[1].get<int>(), static_cast<int>(MutationType::FROZEN));
+}
+
+TEST(Integration_Game, LoadGameRestoresGardenPlantMutations) {
+    SaveFileGuard saveGuard;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 0}}},
+        {"inventory", {{"items", nlohmann::json::array()}}},
+        {"garden", {{"plants", nlohmann::json::array({
+            {
+                {"x", 0},
+                {"y", 0},
+                {"name", "Carrot"},
+                {"stage", 0},
+                {"maxStages", 5},
+                {"ticksElapsed", 0},
+                {"mutations", nlohmann::json::array({
+                    static_cast<int>(MutationType::WET),
+                    static_cast<int>(MutationType::FROZEN)
+                })}
+            }
+        })}}},
+        {"game", {{"tick", 0}, {"initialized", true}, {"saveTimestamp", currentEpochSecondsForTest()}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    Plant* carrot = game.getGarden().getCell(0, 0).getPlant();
+    ASSERT_NE(carrot, nullptr);
+
+    const std::vector<MutationType> mutations = carrot->getMutations();
+    ASSERT_EQ(mutations.size(), 2u);
+    EXPECT_EQ(mutations[0], MutationType::WET);
+    EXPECT_EQ(mutations[1], MutationType::FROZEN);
+
+    carrot->grow(50);
+    EXPECT_DOUBLE_EQ(carrot->harvest().getPrice(), 210.0);
+}
+
+TEST(Integration_Game, LoadGameAcceptsGardenPlantWithoutMutations) {
+    SaveFileGuard saveGuard;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 0}}},
+        {"inventory", {{"items", nlohmann::json::array()}}},
+        {"garden", {{"plants", nlohmann::json::array({
+            {
+                {"x", 0},
+                {"y", 0},
+                {"name", "Carrot"},
+                {"stage", 0},
+                {"maxStages", 5},
+                {"ticksElapsed", 0}
+            }
+        })}}},
+        {"game", {{"tick", 0}, {"initialized", true}, {"saveTimestamp", currentEpochSecondsForTest()}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    Plant* carrot = game.getGarden().getCell(0, 0).getPlant();
+    ASSERT_NE(carrot, nullptr);
+    EXPECT_TRUE(carrot->getMutations().empty());
+}
+
+TEST(Integration_Game, LoadGameKeepsPlantWhenGardenPlantMutationsAreMalformed) {
+    SaveFileGuard saveGuard;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 0}}},
+        {"inventory", {{"items", nlohmann::json::array()}}},
+        {"garden", {{"plants", nlohmann::json::array({
+            {
+                {"x", 0},
+                {"y", 0},
+                {"name", "Carrot"},
+                {"stage", 0},
+                {"maxStages", 5},
+                {"ticksElapsed", 0},
+                {"mutations", nlohmann::json::array({0, "bad"})}
+            }
+        })}}},
+        {"game", {{"tick", 0}, {"initialized", true}, {"saveTimestamp", currentEpochSecondsForTest()}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    Plant* carrot = game.getGarden().getCell(0, 0).getPlant();
+    ASSERT_NE(carrot, nullptr);
+    EXPECT_EQ(carrot->getName(), "Carrot");
+    EXPECT_TRUE(carrot->getMutations().empty());
+}
+
+TEST(Integration_Game, LoadGameAppliesOfflineGrowthToSavedPlants) {
+    SaveFileGuard saveGuard;
+    const std::int64_t savedAt = currentEpochSecondsForTest() - 60;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 0}}},
+        {"inventory", {{"items", nlohmann::json::array()}}},
+        {"garden", {{"plants", nlohmann::json::array({
+            {
+                {"x", 0},
+                {"y", 0},
+                {"name", "Carrot"},
+                {"stage", 0},
+                {"maxStages", 5},
+                {"ticksElapsed", 0}
+            }
+        })}}},
+        {"game", {{"tick", 0}, {"initialized", true}, {"saveTimestamp", savedAt}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    Garden& garden = game.getGarden();
+
+    EXPECT_EQ(garden.getWidth(), 5);
+    EXPECT_EQ(garden.getHeight(), 4);
+
+    Plant* carrot = garden.getCell(0, 0).getPlant();
+    ASSERT_NE(carrot, nullptr);
+    EXPECT_EQ(carrot->getName(), "Carrot");
+    EXPECT_TRUE(carrot->isFullyGrown());
+    EXPECT_EQ(carrot->getTimeToGrowth(), 0u);
+    EXPECT_GE(game.getTickSystem().getTick(), 60u);
 }
 
 TEST(Integration_Game, SaveGamePreservesHarvestBasketWhenUnbound) {

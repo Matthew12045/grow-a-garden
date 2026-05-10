@@ -7,7 +7,7 @@ cd /d "%~dp0"
 set "BUILD_DIR=build"
 set "EXE="
 set "SOURCE_DIR=%CD:\=/%"
-set "CMAKE_COMMON=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGROW_A_GARDEN_BUILD_TESTS=OFF"
+set "CMAKE_COMMON=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGROW_A_GARDEN_BUILD_TESTS=ON"
 
 where cmake >nul 2>nul
 if errorlevel 1 goto :missing_cmake

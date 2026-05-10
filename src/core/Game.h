@@ -6,6 +6,7 @@
 #include "Player.h"
 #include "../systems/RandomEventManager.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -18,7 +19,7 @@ private:
     WeatherSystem weatherSystem_;
     Player player_;
     RandomEventManager randEventMgr_;
-    long lastSaveTimestamp_;
+    std::int64_t lastSaveTimestamp_;
     bool loadedSave_;
     bool initialized_;
     std::vector<BasketEntry>* harvestBasket_ = nullptr;
