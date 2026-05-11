@@ -516,16 +516,6 @@ void GameScreen::drawTopUI() {
         t.setPosition({960.f - lb.size.x/2.f, 28.f});
         window_.draw(t);
     }
-    // Equipped tool indicator
-    if (!equippedTool_.empty()) {
-        const auto* def = findItem(equippedTool_);
-        std::string label = "Tool: " + (def ? def->cropName : equippedTool_) + "  [ESC=close]";
-        DrawUtils::drawPxPanel(window_, font_, {BOARD_X, 14.f}, {320.f, 46.f},
-                    Pal::FRAME_MID, {40,80,160}, {80,140,220});
-        auto t = DrawUtils::makeText(font_, label, 18, { 80,160,255 });
-        t.setPosition({BOARD_X + 10.f, 27.f});
-        window_.draw(t);
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────
