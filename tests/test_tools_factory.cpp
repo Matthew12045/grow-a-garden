@@ -83,6 +83,23 @@ TEST(FertilizerToolTest, RepeatedUseCanFullyGrowPlant) {
     EXPECT_EQ(fertilizer.getDurability(), 22);
 }
 
+TEST(FertilizerToolTest, FullyGrownPlantDoesNotConsumeDurability) {
+    Cell cell;
+    Player player;
+    FertilizerTool fertilizer;
+
+    ASSERT_TRUE(cell.setPlant(std::make_unique<Plant>(
+        1, "Carrot", 5, 5, 10, 50, 30.0, false, 0)));
+
+    fertilizer.use(cell, player);
+
+    Plant* plant = cell.getPlant();
+    ASSERT_NE(plant, nullptr);
+    EXPECT_TRUE(plant->isFullyGrown());
+    EXPECT_EQ(plant->getTimeToGrowth(), 0u);
+    EXPECT_EQ(fertilizer.getDurability(), fertilizer.getMaxDurability());
+}
+
 TEST(WateringCanToolTest, UseAdvancesPlantAndConsumesDurability) {
     Cell cell;
     Player player;
@@ -98,6 +115,23 @@ TEST(WateringCanToolTest, UseAdvancesPlantAndConsumesDurability) {
     EXPECT_EQ(plant->getStage(), 0);
     EXPECT_EQ(plant->getTimeToGrowth(), 45u);
     EXPECT_EQ(can.getDurability(), 49);
+}
+
+TEST(WateringCanToolTest, FullyGrownPlantDoesNotConsumeDurability) {
+    Cell cell;
+    Player player;
+    WateringCan can;
+
+    ASSERT_TRUE(cell.setPlant(std::make_unique<Plant>(
+        1, "Carrot", 5, 5, 10, 50, 30.0, false, 0)));
+
+    can.use(cell, player);
+
+    Plant* plant = cell.getPlant();
+    ASSERT_NE(plant, nullptr);
+    EXPECT_TRUE(plant->isFullyGrown());
+    EXPECT_EQ(plant->getTimeToGrowth(), 0u);
+    EXPECT_EQ(can.getDurability(), can.getMaxDurability());
 }
 
 TEST(ToolDurabilityTest, EmptyCellUseDoesNotConsumeDurability) {

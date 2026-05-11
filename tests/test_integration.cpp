@@ -32,6 +32,7 @@
 // ── Concrete plant & item under test ──────────────────────────────────────
 #include "../src/entities/HarvestedItem.h"
 #include "../src/entities/Mutation.h"
+#include "../src/items/FertilizerTool.h"
 #include "../src/items/WateringCan.h"
 #include "../src/items/Seed.h"
 #include "../src/items/Tool.h"
@@ -378,6 +379,40 @@ TEST(Integration_WateringCan, EquipAndUseAdvancesCarrotGrowth) {
     ASSERT_NE(c, nullptr);
     EXPECT_TRUE(c->isFullyGrown());
     EXPECT_EQ(can->getDurability(), 40);
+}
+
+TEST(Integration_WateringCan, FullyGrownCarrotDoesNotConsumeDurability) {
+    Garden garden(20, 20);
+    Player player;
+    garden.plantCrop(0, 0, std::make_unique<Plant>(1, "Carrot", 5, 5, 10, 50, 30.0, false, 0));
+
+    auto can = std::make_shared<WateringCan>();
+    player.equipTool(can);
+
+    player.useTool(garden.getCell(0, 0));
+
+    Plant* c = garden.getCell(0, 0).getPlant();
+    ASSERT_NE(c, nullptr);
+    EXPECT_TRUE(c->isFullyGrown());
+    EXPECT_EQ(c->getTimeToGrowth(), 0u);
+    EXPECT_EQ(can->getDurability(), can->getMaxDurability());
+}
+
+TEST(Integration_Fertilizer, FullyGrownCarrotDoesNotConsumeDurability) {
+    Garden garden(20, 20);
+    Player player;
+    garden.plantCrop(0, 0, std::make_unique<Plant>(1, "Carrot", 5, 5, 10, 50, 30.0, false, 0));
+
+    auto fertilizer = std::make_shared<FertilizerTool>();
+    player.equipTool(fertilizer);
+
+    player.useTool(garden.getCell(0, 0));
+
+    Plant* c = garden.getCell(0, 0).getPlant();
+    ASSERT_NE(c, nullptr);
+    EXPECT_TRUE(c->isFullyGrown());
+    EXPECT_EQ(c->getTimeToGrowth(), 0u);
+    EXPECT_EQ(fertilizer->getDurability(), fertilizer->getMaxDurability());
 }
 
 // Using the tool on an empty cell should not crash.

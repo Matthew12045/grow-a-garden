@@ -184,6 +184,13 @@ void GameScreen::selectInventoryItem(const std::string& name) {
         equippedTool_ = "";
         setStatus("Selected: " + def->cropName + " seed", 1.5f);
     } else if (def && def->type == ShopItemType::TOOL) {
+        if (equippedTool_ == name) {
+            equippedTool_.clear();
+            selectedSeed_.clear();
+            setStatus("Unequipped: " + def->cropName, 1.5f);
+            return;
+        }
+
         equippedTool_ = name;
         selectedSeed_ = "";
         setStatus("Equipped: " + def->cropName, 1.5f);
@@ -343,6 +350,13 @@ void GameScreen::useToolOnCell(int gx, int gy) {
     }
 
     Cell&  cell  = game_.getGarden().getCell(gx, gy);
+    Plant* plant = cell.getPlant();
+    const bool isGrowthTool = toolItemName == "Watering Can" || toolItemName == "Fertilizer";
+    if (isGrowthTool && plant && plant->isFullyGrown()) {
+        setStatus("This plant is already fully grown.", 2.0f);
+        return;
+    }
+
     const int durabilityBefore = tool->getDurability();
     tool->use(cell, game_.getPlayer());
     const int durabilityAfterUse = tool->getDurability();

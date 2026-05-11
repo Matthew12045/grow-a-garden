@@ -24,6 +24,9 @@ void WateringCan::use(Cell& cell, Player& /*player*/)
     if (plant == nullptr) {
         return;  // nothing to water
     }
+    if (plant->isFullyGrown()) {
+        return;
+    }
 
     plant->grow(static_cast<std::size_t>(GROWTH_BOOST_TICKS));
     consumeDurability();
