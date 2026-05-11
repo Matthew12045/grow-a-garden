@@ -1,7 +1,35 @@
 #include "AudioManager.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
+
+namespace {
+std::string normalizeAssetRelativePath(std::string relativePath) {
+	std::replace(relativePath.begin(), relativePath.end(), '\\', '/');
+	return relativePath;
+}
+
+bool isSafeAssetRelativePath(const std::string& relativePath) {
+	if (relativePath.empty() || relativePath.front() == '/' ||
+		relativePath.find(':') != std::string::npos) {
+		return false;
+	}
+
+	const std::filesystem::path path(relativePath);
+	if (path.empty() || path.is_absolute() || path.has_root_name() || path.has_root_directory()) {
+		return false;
+	}
+
+	for (const auto& part : path) {
+		if (part == "..") {
+			return false;
+		}
+	}
+
+	return true;
+}
+}
 
 AudioManager::AudioManager()
 	: currentWeather_(WeatherType::SUMMER),
@@ -64,7 +92,6 @@ void AudioManager::updateBGM(WeatherType currentWeather) {
 	currentTrack_.stop();
 	isPlaying_ = false;
 	currentWeather_ = currentWeather;
-
 	for (const auto& candidate : buildTrackCandidates(currentWeather)) {
 		if (std::filesystem::exists(candidate) && currentTrack_.openFromFile(candidate)) {
 			currentTrack_.setLooping(true);
@@ -82,6 +109,35 @@ void AudioManager::updateBGM(WeatherType currentWeather) {
 #ifndef NDEBUG
 	std::cout << "AudioManager: no bgm track loaded" << std::endl;
 #endif
+}
+
+bool AudioManager::playSound(const std::string& relativePath) {
+	std::string normalizedPath = normalizeAssetRelativePath(relativePath);
+	if (!isSafeAssetRelativePath(normalizedPath)) {
+		return false;
+	}
+
+	const std::filesystem::path assetPath = std::filesystem::path("assets") / normalizedPath;
+	std::error_code errorCode;
+	if (!std::filesystem::is_regular_file(assetPath, errorCode) || errorCode) {
+		return false;
+	}
+
+	activeSounds_.erase(
+		std::remove_if(activeSounds_.begin(), activeSounds_.end(), [](const sf::Sound& sound) {
+			return sound.getStatus() == sf::SoundSource::Status::Stopped;
+		}),
+		activeSounds_.end());
+
+	auto [bufferIt, inserted] = soundBuffers_.try_emplace(normalizedPath);
+	if (inserted && !bufferIt->second.loadFromFile(assetPath)) {
+		soundBuffers_.erase(bufferIt);
+		return false;
+	}
+
+	activeSounds_.emplace_back(bufferIt->second);
+	activeSounds_.back().play();
+	return true;
 }
 
 void AudioManager::stop() {

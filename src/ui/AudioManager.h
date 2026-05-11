@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class AudioManager {
@@ -14,6 +15,8 @@ private:
 	bool isPlaying_;
 	sf::Music currentTrack_;
 	std::string currentTrackPath_;
+	std::unordered_map<std::string, sf::SoundBuffer> soundBuffers_;
+	std::vector<sf::Sound> activeSounds_;
 
 	static std::vector<std::string> buildTrackCandidates(WeatherType weatherType);
 
@@ -27,5 +30,6 @@ public:
 	AudioManager();
 
 	void updateBGM(WeatherType currentWeather);
+	bool playSound(const std::string& relativePath);
 	void stop();
 };

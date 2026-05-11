@@ -228,6 +228,7 @@ enum Language {
 class AudioManager {
     - currentWeather : WeatherType
     + updateBGM(currentWeather : WeatherType) : void
+    + playSound(relativePath : string) : bool
     + stop() : void
 }
 

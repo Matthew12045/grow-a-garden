@@ -31,3 +31,17 @@ TEST(AudioManagerTest, WeatherToTrackPath) {
     EXPECT_NE(AudioManager::weatherToTrackPath(WeatherType::SUMMER).find("06_main_music_00"), std::string::npos);
     EXPECT_NE(AudioManager::weatherToTrackPath(WeatherType::METEOR_SHOWER).find("19_main_music_13"), std::string::npos);
 }
+
+TEST(AudioManagerTest, PlaySoundReturnsFalseForMissingAsset) {
+    AudioManager audio;
+    EXPECT_FALSE(audio.playSound("audio/sfx/not-real.wav"));
+}
+
+TEST(AudioManagerTest, PlaySoundReturnsFalseForInvalidPaths) {
+    AudioManager audio;
+    EXPECT_FALSE(audio.playSound(""));
+    EXPECT_FALSE(audio.playSound("../audio/sfx/not-real.wav"));
+    EXPECT_FALSE(audio.playSound("audio/../sfx/not-real.wav"));
+    EXPECT_FALSE(audio.playSound("/audio/sfx/not-real.wav"));
+    EXPECT_FALSE(audio.playSound("C:/audio/sfx/not-real.wav"));
+}
