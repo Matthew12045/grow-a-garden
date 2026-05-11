@@ -224,3 +224,26 @@ When generating code that touches shared systems (Garden, Plant, TickSystem), be
 
 - Class diagram: `docs/class_diagram.puml` (open with PlantUML)
 - GitHub repo: https://github.com/Matthew12045/grow-a-garden
+
+## VS Code Debugger MCP
+
+This repo is configured for Codex/agent debugging through the VS Code extension
+`JasonMcGhee.claude-debugs-for-you`.
+
+Before using debugger MCP tools:
+- Open this repo in VS Code: `C:\Users\User\FRA142\project\grow-a-garden`
+- Make sure the “Claude Debugs For You” extension/server is running.
+- Use the first VS Code launch config: `Debug GrowAGarden`.
+- The debugger launches `build/GrowAGarden.exe` from the repo root.
+- Keep `stopAtEntry: true` in `.vscode/launch.json` so agents can evaluate state before the game runs.
+- When the game appears stuck on the loading screen during debugging, it is probably paused at entry; send `continue`.
+
+Available MCP debugger actions include:
+- `setBreakpoint`
+- `launch`
+- `evaluate`
+- `continue`
+- `removeBreakpoint`
+
+Do not commit global Codex config from `C:\Users\User\.codex`; only repo files such as
+`.vscode/launch.json` and this `AGENTS.md` belong here.

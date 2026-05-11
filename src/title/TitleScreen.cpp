@@ -32,8 +32,8 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
         loaded = backgroundTexture.loadFromFile(alt);
     }
     if (!loaded) {
-        // try a commonly-named sample file
-        loaded = backgroundTexture.loadFromFile("assets/textures/title_bg_sample.jpg");
+        // try a commonly-named title background
+        loaded = backgroundTexture.loadFromFile("assets/textures/title_background.png");
     }
     if (!loaded) {
         // fallback: create a simple colored image
@@ -49,9 +49,9 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
     backgroundSprite->setScale(sf::Vector2f(1920.f / textureSize.x, 1080.f / textureSize.y));
     
     // Load intro image (logo)
-    bool logoLoaded = introTexture.loadFromFile("assets/textures/LOGO.png");
+    bool logoLoaded = introTexture.loadFromFile("assets/textures/title_logo.png");
     if (!logoLoaded) {
-        std::cerr << "Warning: Could not load LOGO.png, creating fallback logo" << std::endl;
+        std::cerr << "Warning: Could not load title_logo.png, creating fallback logo" << std::endl;
         // Create a simple fallback logo texture
         sf::Image fallbackLogo;
         fallbackLogo.resize(sf::Vector2u(400, 200), sf::Color(100, 150, 200));
@@ -92,13 +92,13 @@ TitleScreen::TitleScreen(const std::string& backgroundPath)
     creditsButton = std::make_unique<Button>(800.f, startY + 2 * (btnHeight + spacing), btnWidth, btnHeight, "CREDIT");
     exitButton = std::make_unique<Button>(800.f, startY + 3 * (btnHeight + spacing), btnWidth, btnHeight, "LEAVE");
     
-    if (startTexture.loadFromFile("assets/textures/start.PNG")) {
+    if (startTexture.loadFromFile("assets/textures/title_start_button.png")) {
         startButton->setTexture(startTexture);
     }
-    if (resetTexture.loadFromFile("assets/textures/reset.PNG")) {
+    if (resetTexture.loadFromFile("assets/textures/title_reset_button.png")) {
         resetButton->setTexture(resetTexture);
     }
-    if (leaveTexture.loadFromFile("assets/textures/leave.PNG")) {
+    if (leaveTexture.loadFromFile("assets/textures/title_leave_button.png")) {
         exitButton->setTexture(leaveTexture);
     }
     
