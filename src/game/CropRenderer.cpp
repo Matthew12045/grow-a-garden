@@ -1,9 +1,150 @@
 #include "CropRenderer.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 namespace CropRenderer {
+
+namespace {
+
+enum class CropAssetRole {
+    Sprout,
+    Plant,
+    Harvested
+};
+
+struct CropVisualAssets {
+    const char* sproutPath;
+    const char* plantPath;
+    const char* harvestedPath;
+};
+
+struct CachedCropAsset {
+    sf::Texture texture;
+    sf::IntRect sourceRect;
+    bool attempted = false;
+    bool loaded = false;
+};
+
+const CropVisualAssets* findCropVisualAssets(const std::string& cropName) {
+    static const std::unordered_map<std::string, CropVisualAssets> cropAssets = {
+        {"Carrot", {
+            "assets/textures/plants/carrot_sprout.png",
+            "assets/textures/plants/carrot_plant.png",
+            "assets/textures/plants/carrot_harvested.png",
+        }},
+    };
+
+    const auto it = cropAssets.find(cropName);
+    return it == cropAssets.end() ? nullptr : &it->second;
+}
+
+const char* getAssetPath(const CropVisualAssets& assets, CropAssetRole role) {
+    switch (role) {
+        case CropAssetRole::Sprout:    return assets.sproutPath;
+        case CropAssetRole::Plant:     return assets.plantPath;
+        case CropAssetRole::Harvested: return assets.harvestedPath;
+    }
+
+    return nullptr;
+}
+
+sf::IntRect findOpaqueBounds(const sf::Image& image) {
+    const sf::Vector2u size = image.getSize();
+    if (size.x == 0 || size.y == 0) {
+        return sf::IntRect{{0, 0}, {0, 0}};
+    }
+
+    unsigned int minX = size.x;
+    unsigned int minY = size.y;
+    unsigned int maxX = 0;
+    unsigned int maxY = 0;
+    bool foundOpaquePixel = false;
+
+    for (unsigned int y = 0; y < size.y; ++y) {
+        for (unsigned int x = 0; x < size.x; ++x) {
+            if (image.getPixel({x, y}).a == 0) {
+                continue;
+            }
+
+            foundOpaquePixel = true;
+            minX = std::min(minX, x);
+            minY = std::min(minY, y);
+            maxX = std::max(maxX, x);
+            maxY = std::max(maxY, y);
+        }
+    }
+
+    if (!foundOpaquePixel) {
+        return sf::IntRect{{0, 0}, {static_cast<int>(size.x), static_cast<int>(size.y)}};
+    }
+
+    return sf::IntRect{
+        {static_cast<int>(minX), static_cast<int>(minY)},
+        {static_cast<int>(maxX - minX + 1), static_cast<int>(maxY - minY + 1)}
+    };
+}
+
+const CachedCropAsset* getCachedAsset(const std::string& path) {
+    static std::unordered_map<std::string, CachedCropAsset> cache;
+
+    CachedCropAsset& asset = cache[path];
+    if (!asset.attempted) {
+        asset.attempted = true;
+
+        sf::Image image;
+        if (image.loadFromFile(path) && asset.texture.loadFromImage(image)) {
+            asset.texture.setSmooth(false);
+            asset.sourceRect = findOpaqueBounds(image);
+            asset.loaded = asset.sourceRect.size.x > 0 && asset.sourceRect.size.y > 0;
+        }
+    }
+
+    return asset.loaded ? &asset : nullptr;
+}
+
+bool drawCroppedAsset(sf::RenderWindow& window, const std::string& path,
+                      sf::Vector2f centre, float targetMaxSize) {
+    const CachedCropAsset* asset = getCachedAsset(path);
+    if (!asset || targetMaxSize <= 0.f) {
+        return false;
+    }
+
+    sf::Sprite sprite(asset->texture);
+    sprite.setTextureRect(asset->sourceRect);
+
+    const sf::FloatRect bounds = sprite.getLocalBounds();
+    const float maxSourceSize = std::max(bounds.size.x, bounds.size.y);
+    if (maxSourceSize <= 0.f) {
+        return false;
+    }
+
+    const float scale = targetMaxSize / maxSourceSize;
+    sprite.setOrigin({bounds.position.x + bounds.size.x / 2.f,
+                      bounds.position.y + bounds.size.y / 2.f});
+    sprite.setScale({scale, scale});
+    sprite.setPosition(centre);
+    window.draw(sprite);
+    return true;
+}
+
+bool drawCropAsset(sf::RenderWindow& window, const std::string& cropName,
+                   CropAssetRole role, sf::Vector2f centre, float targetMaxSize) {
+    const CropVisualAssets* assets = findCropVisualAssets(cropName);
+    if (!assets) {
+        return false;
+    }
+
+    const char* path = getAssetPath(*assets, role);
+    return path != nullptr && drawCroppedAsset(window, path, centre, targetMaxSize);
+}
+
+} // namespace
+
+void drawProceduralCropIcon(sf::RenderWindow& window, sf::Font& font,
+                            const ShopItemDef& def, sf::Vector2f c, float sz);
 
 void drawCloud(sf::RenderWindow& window, float cx, float cy, float scale) {
     auto circle = [&](float ox, float oy, float r) {
@@ -28,6 +169,12 @@ void drawPlant(sf::RenderWindow& window, sf::Font& font, Plant* p, sf::Vector2f 
     float cx = s.x + cellSz / 2.f;
     float cy = s.y + cellSz / 2.f;
 
+    if (drawCropAsset(window, p->getName(),
+                      ripe ? CropAssetRole::Plant : CropAssetRole::Sprout,
+                      {cx, cy + cellSz * 0.03f}, cellSz * 0.66f)) {
+        return;
+    }
+
     if (ripe) {
         std::string seedKey = "Carrot Seed";
         for (const auto& d : catalogue)
@@ -37,7 +184,7 @@ void drawPlant(sf::RenderWindow& window, sf::Font& font, Plant* p, sf::Vector2f 
         for (const auto& d : catalogue)
             if (d.name == seedKey) { def = &d; break; }
 
-        if (def) drawCropIcon(window, font, *def, {cx, cy}, 70.f);
+        if (def) drawProceduralCropIcon(window, font, *def, {cx, cy}, 70.f);
     } else {
         sf::Color stemCol = Pal::SPROUT;
         for (const auto& d : catalogue)
@@ -65,7 +212,15 @@ void drawPlant(sf::RenderWindow& window, sf::Font& font, Plant* p, sf::Vector2f 
     }
 }
 
-void drawCropIcon(sf::RenderWindow& window, sf::Font&, const ShopItemDef& def, sf::Vector2f c, float sz) {
+void drawCropIcon(sf::RenderWindow& window, sf::Font& font, const ShopItemDef& def, sf::Vector2f c, float sz) {
+    if (drawCropAsset(window, def.cropName, CropAssetRole::Harvested, c, sz)) {
+        return;
+    }
+
+    drawProceduralCropIcon(window, font, def, c, sz);
+}
+
+void drawProceduralCropIcon(sf::RenderWindow& window, sf::Font&, const ShopItemDef& def, sf::Vector2f c, float sz) {
     sf::Color col  = def.iconPrimary;
     sf::Color stem = def.iconAccent;
     float h = sz * 0.55f;
