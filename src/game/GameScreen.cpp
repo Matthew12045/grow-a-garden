@@ -180,6 +180,13 @@ void GameScreen::update(float dt) {
 void GameScreen::selectInventoryItem(const std::string& name) {
     const auto* def = findItem(name);
     if (def && def->type == ShopItemType::SEED) {
+        if (selectedSeed_ == name) {
+            selectedSeed_.clear();
+            equippedTool_.clear();
+            setStatus("Deselected: " + def->cropName + " seed", 1.5f);
+            return;
+        }
+
         selectedSeed_ = name;
         equippedTool_ = "";
         setStatus("Selected: " + def->cropName + " seed", 1.5f);
