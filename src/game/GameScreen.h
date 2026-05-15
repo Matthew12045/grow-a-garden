@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -41,6 +42,8 @@ private:
     SessionManager session_;
     ShopOverlay shopOverlay_;
     InventoryOverlay inventoryOverlay_;
+    sf::Texture gardenBoardTexture_;
+    std::unique_ptr<sf::Sprite> gardenBoardSprite_;
 
     std::string statusMsg_;
     float       statusTimer_ = 0.f;

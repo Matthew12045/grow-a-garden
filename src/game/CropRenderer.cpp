@@ -160,18 +160,19 @@ void drawCloud(sf::RenderWindow& window, float cx, float cy, float scale) {
 }
 
 void drawPlant(sf::RenderWindow& window, sf::Font& font, Plant* p, sf::Vector2f s,
-               float cellSz, const std::vector<ShopItemDef>& catalogue) {
+               sf::Vector2f cellSize, const std::vector<ShopItemDef>& catalogue) {
     if (!p) return;
     int   stage    = p->getStage();
     int   maxStage = p->getMaxStages();
     bool  ripe     = p->isFullyGrown();
     float ratio    = maxStage > 0 ? (float)stage / (float)maxStage : 0.f;
-    float cx = s.x + cellSz / 2.f;
-    float cy = s.y + cellSz / 2.f;
+    float visualSz = std::min(cellSize.x, cellSize.y);
+    float cx = s.x + cellSize.x / 2.f;
+    float cy = s.y + cellSize.y / 2.f;
 
     if (drawCropAsset(window, p->getName(),
                       ripe ? CropAssetRole::Plant : CropAssetRole::Sprout,
-                      {cx, cy + cellSz * 0.03f}, cellSz * 0.66f)) {
+                      {cx, cy + visualSz * 0.03f}, visualSz * 0.66f)) {
         return;
     }
 
@@ -184,13 +185,13 @@ void drawPlant(sf::RenderWindow& window, sf::Font& font, Plant* p, sf::Vector2f 
         for (const auto& d : catalogue)
             if (d.name == seedKey) { def = &d; break; }
 
-        if (def) drawProceduralCropIcon(window, font, *def, {cx, cy}, 70.f);
+        if (def) drawProceduralCropIcon(window, font, *def, {cx, cy}, visualSz * 0.49f);
     } else {
         sf::Color stemCol = Pal::SPROUT;
         for (const auto& d : catalogue)
             if (d.cropName == p->getName()) { stemCol = d.iconAccent; break; }
 
-        float h = 10.f + ratio * (cellSz * 0.38f);
+        float h = 10.f + ratio * (visualSz * 0.38f);
         sf::RectangleShape stem({5.f, h});
         stem.setPosition({cx - 2.5f, cy + 8.f - h});
         stem.setFillColor(stemCol);

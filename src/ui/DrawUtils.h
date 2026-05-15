@@ -4,16 +4,20 @@
 #include <string>
 
 // Layout constants (1920x1080)
-inline constexpr float CELL_SZ    = 144.f;
-inline constexpr float BOARD_PAD  = 12.f;
+inline constexpr float CELL_W     = 274.f;
+inline constexpr float CELL_H     = 145.f;
+inline constexpr float CELL_SZ    = CELL_H;
+inline constexpr float BOARD_PAD  = 0.f;
 inline constexpr float BOARD_COLS = 5.f;
 inline constexpr float BOARD_ROWS = 4.f;
-inline constexpr float BOARD_W    = BOARD_COLS * CELL_SZ + BOARD_PAD * 2;
-inline constexpr float BOARD_H    = BOARD_ROWS * CELL_SZ + BOARD_PAD * 2;
-inline constexpr float BOARD_X    = (1920.f - BOARD_W) / 2.f;
-inline constexpr float BOARD_Y    = 88.f;
-inline constexpr float GRID_X     = BOARD_X + BOARD_PAD;
-inline constexpr float GRID_Y     = BOARD_Y + BOARD_PAD;
+inline constexpr float BOARD_X    = 278.f;
+inline constexpr float BOARD_Y    = 161.f;
+inline constexpr float BOARD_W    = 1426.f;
+inline constexpr float BOARD_H    = 629.f;
+inline constexpr float GRID_X     = 320.f;
+inline constexpr float GRID_Y     = 195.f;
+inline constexpr float GRID_W     = BOARD_COLS * CELL_W;
+inline constexpr float GRID_H     = BOARD_ROWS * CELL_H;
 inline constexpr float INV_BAR_Y  = BOARD_Y + BOARD_H + 18.f;
 inline constexpr float INV_BAR_H  = 76.f;
 

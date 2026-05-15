@@ -12,6 +12,8 @@
 #include <memory>
 
 namespace {
+constexpr const char* GARDEN_BOARD_TEXTURE_PATH = "assets/textures/tiles/garden_board_panel.png";
+
 std::unique_ptr<Item> makeShopItem(const ShopItemDef& def) {
     if (def.type == ShopItemType::SEED) {
         return std::make_unique<Seed>(1, def.name, def.description, def.buyPrice, def.cropName);
@@ -58,6 +60,14 @@ GameScreen::GameScreen(sf::RenderWindow& window, sf::Font& font)
     }
 
     setupShop();
+
+    if (gardenBoardTexture_.loadFromFile(GARDEN_BOARD_TEXTURE_PATH)) {
+        gardenBoardTexture_.setSmooth(false);
+        gardenBoardSprite_ = std::make_unique<sf::Sprite>(gardenBoardTexture_);
+        gardenBoardSprite_->setPosition({0.f, 0.f});
+    } else {
+        std::cerr << "Warning: Could not load " << GARDEN_BOARD_TEXTURE_PATH << std::endl;
+    }
 }
 
 void GameScreen::setupShop() {
@@ -143,8 +153,8 @@ void GameScreen::onMouseClick(sf::Vector2f pos) {
     inventoryOverlay_.handleClick(pos);
 
     // Garden grid
-    bool inGrid = (pos.x >= GRID_X && pos.x < GRID_X + BOARD_COLS*CELL_SZ &&
-                   pos.y >= GRID_Y && pos.y < GRID_Y + BOARD_ROWS*CELL_SZ);
+    bool inGrid = (pos.x >= GRID_X && pos.x < GRID_X + GRID_W &&
+                   pos.y >= GRID_Y && pos.y < GRID_Y + GRID_H);
     if (inGrid) handleCellClick(pos);
 }
 
@@ -205,8 +215,8 @@ void GameScreen::selectInventoryItem(const std::string& name) {
 }
 
 void GameScreen::handleCellClick(sf::Vector2f pos) {
-    int gx = (int)((pos.x - GRID_X) / CELL_SZ);
-    int gy = (int)((pos.y - GRID_Y) / CELL_SZ);
+    int gx = (int)((pos.x - GRID_X) / CELL_W);
+    int gy = (int)((pos.y - GRID_Y) / CELL_H);
     if (gx < 0 || gx >= (int)BOARD_COLS || gy < 0 || gy >= (int)BOARD_ROWS) return;
 
     Cell&  cell  = game_.getGarden().getCell(gx, gy);
@@ -529,87 +539,42 @@ void GameScreen::drawTopUI() {
 //  Garden board
 // ─────────────────────────────────────────────────────────────────────
 void GameScreen::drawGardenBoard(sf::Vector2f mouse) {
-    // Drop shadow
-    sf::RectangleShape s({BOARD_W+8.f, BOARD_H+8.f});
-    s.setPosition({BOARD_X-2.f, BOARD_Y+4.f});
-    s.setFillColor({20,10,2,150});
-    window_.draw(s);
-
-    sf::RectangleShape b({BOARD_W+6.f, BOARD_H+6.f});
-    b.setPosition({BOARD_X-3.f, BOARD_Y-3.f});
-    b.setFillColor(Pal::BOARD_DRK);
-    window_.draw(b);
-
-    sf::RectangleShape f({BOARD_W, BOARD_H});
-    f.setPosition({BOARD_X, BOARD_Y});
-    f.setFillColor(Pal::BOARD_MID);
-    window_.draw(f);
-
-    // Highlight
-    sf::RectangleShape ht({BOARD_W, BOARD_PAD});
-    ht.setPosition({BOARD_X, BOARD_Y});
-    ht.setFillColor(Pal::BOARD_LIT);
-    window_.draw(ht);
-    sf::RectangleShape vl({BOARD_PAD, BOARD_H});
-    vl.setPosition({BOARD_X, BOARD_Y});
-    vl.setFillColor(Pal::BOARD_LIT);
-    window_.draw(vl);
-
-    // Shadow
-    sf::RectangleShape hb({BOARD_W, BOARD_PAD});
-    hb.setPosition({BOARD_X, BOARD_Y+BOARD_H-BOARD_PAD});
-    hb.setFillColor(Pal::BOARD_DRK);
-    window_.draw(hb);
-    sf::RectangleShape vr({BOARD_PAD, BOARD_H});
-    vr.setPosition({BOARD_X+BOARD_W-BOARD_PAD, BOARD_Y});
-    vr.setFillColor(Pal::BOARD_DRK);
-    window_.draw(vr);
+    if (gardenBoardSprite_) {
+        window_.draw(*gardenBoardSprite_);
+    }
 
     // Cells
     for (int gy = 0; gy < (int)BOARD_ROWS; ++gy)
         for (int gx = 0; gx < (int)BOARD_COLS; ++gx) {
-            sf::Vector2f sc{GRID_X + gx*CELL_SZ, GRID_Y + gy*CELL_SZ};
-            bool hov = (mouse.x>=sc.x && mouse.x<sc.x+CELL_SZ &&
-                        mouse.y>=sc.y && mouse.y<sc.y+CELL_SZ);
+            sf::Vector2f sc{GRID_X + gx*CELL_W, GRID_Y + gy*CELL_H};
+            bool hov = (mouse.x>=sc.x && mouse.x<sc.x+CELL_W &&
+                        mouse.y>=sc.y && mouse.y<sc.y+CELL_H);
             drawCell(gx, gy, sc, hov);
         }
 
 }
 
 void GameScreen::drawCell(int gx, int gy, sf::Vector2f s, bool hov) {
-    const float GAP = 2.f, SZ = CELL_SZ - GAP;
+    const float inset = 6.f;
+    const sf::Vector2f overlayPos{s.x + inset, s.y + inset};
+    const sf::Vector2f overlaySize{CELL_W - inset * 2.f, CELL_H - inset * 2.f};
     Cell&  cell  = game_.getGarden().getCell(gx, gy);
     Plant* plant = cell.getPlant();
     bool   ripe  = plant && plant->isFullyGrown();
 
-    sf::Color base = plant ? Pal::SOIL_DRK : Pal::SOIL_MID;
-    if (hov && !plant)  base = {160, 110, 56};
-    if (hov && ripe)    base = {195, 178, 35};
+    if (hov) {
+        sf::RectangleShape hover({overlaySize.x, overlaySize.y});
+        hover.setPosition(overlayPos);
+        hover.setFillColor(ripe ? sf::Color{255, 220, 30, 58}
+                                : sf::Color{255, 255, 255, 34});
+        window_.draw(hover);
+    }
 
-    sf::RectangleShape sh({SZ, SZ});
-    sh.setPosition({s.x+GAP, s.y+GAP});
-    sh.setFillColor(Pal::SOIL_DRK);
-    window_.draw(sh);
-
-    sf::RectangleShape fc({SZ-2.f, SZ-2.f});
-    fc.setPosition({s.x+GAP, s.y+GAP});
-    fc.setFillColor(base);
-    window_.draw(fc);
-
-    sf::RectangleShape hl({SZ-2.f, 3.f});
-    hl.setPosition({s.x+GAP, s.y+GAP});
-    hl.setFillColor(Pal::SOIL_LIT);
-    window_.draw(hl);
-    sf::RectangleShape vl({3.f, SZ-2.f});
-    vl.setPosition({s.x+GAP, s.y+GAP});
-    vl.setFillColor(Pal::SOIL_LIT);
-    window_.draw(vl);
-
-    if (plant) CropRenderer::drawPlant(window_, font_, plant, s, CELL_SZ, catalogue_);
+    if (plant) CropRenderer::drawPlant(window_, font_, plant, s, {CELL_W, CELL_H}, catalogue_);
 
     if (ripe) {
-        sf::RectangleShape gl({SZ-2.f, SZ-2.f});
-        gl.setPosition({s.x+GAP, s.y+GAP});
+        sf::RectangleShape gl({overlaySize.x, overlaySize.y});
+        gl.setPosition(overlayPos);
         gl.setFillColor(sf::Color::Transparent);
         gl.setOutlineThickness(4.f);
         gl.setOutlineColor({255,220,30,180});
@@ -619,7 +584,7 @@ void GameScreen::drawCell(int gx, int gy, sf::Vector2f s, bool hov) {
     if (plant && !plant->getMutations().empty()) {
         sf::CircleShape dot(6.f);
         dot.setFillColor(Pal::MUTATION);
-        dot.setPosition({s.x+CELL_SZ-16.f, s.y+4.f});
+        dot.setPosition({s.x+CELL_W-18.f, s.y+8.f});
         window_.draw(dot);
     }
 }
