@@ -44,6 +44,8 @@ private:
     InventoryOverlay inventoryOverlay_;
     sf::Texture gardenBoardTexture_;
     std::unique_ptr<sf::Sprite> gardenBoardSprite_;
+    sf::Texture backgroundTexture_;
+    std::unique_ptr<sf::Sprite> backgroundSprite_;
 
     std::string statusMsg_;
     float       statusTimer_ = 0.f;

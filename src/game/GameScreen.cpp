@@ -50,6 +50,13 @@ GameScreen::GameScreen(sf::RenderWindow& window, sf::Font& font)
       shopOverlay_(window_, font_, game_, harvestBasket_, catalogue_, *this),
       inventoryOverlay_(window_, font_, game_, catalogue_, *this)
 {
+    if (backgroundTexture_.loadFromFile("assets/textures/events/cloudy_sky_with_sun.png")) {
+        backgroundTexture_.setSmooth(false);
+        backgroundSprite_ = std::make_unique<sf::Sprite>(backgroundTexture_);
+    } else {
+        std::cerr << "Warning: Could not load assets/textures/events/cloudy_sky_with_sun.png" << std::endl;
+    }
+
     // 2 ticks/sec
     game_.getTickSystem().setTickRate(0.5f);
 
@@ -472,6 +479,21 @@ void GameScreen::render() {
 //  Background
 // ─────────────────────────────────────────────────────────────────────
 void GameScreen::drawBackground() {
+    if (backgroundSprite_) {
+        const sf::View& view = window_.getView();
+        const sf::Vector2f viewSize = view.getSize();
+        const sf::Vector2u textureSize = backgroundTexture_.getSize();
+        const float scale = std::max(viewSize.x / static_cast<float>(textureSize.x),
+                                     viewSize.y / static_cast<float>(textureSize.y));
+
+        backgroundSprite_->setOrigin({static_cast<float>(textureSize.x) / 2.f,
+                                      static_cast<float>(textureSize.y) / 2.f});
+        backgroundSprite_->setPosition(view.getCenter());
+        backgroundSprite_->setScale({scale, scale});
+        window_.draw(*backgroundSprite_);
+        return;
+    }
+
     sf::RectangleShape top({ 1920.f, 180.f });
     top.setFillColor({ 88, 162, 210 });
     window_.draw(top);
