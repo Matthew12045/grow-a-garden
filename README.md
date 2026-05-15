@@ -4,6 +4,117 @@
 
 ---
 
+## 🎮 Game Overview
+
+**Grow A Garden** is a **single-player**, top-down 2D farming simulator for **Windows and Linux**. The player manages a small garden, buys seeds, plants crops, waits for them to grow, harvests them into a basket, and sells the harvest for **sheckles**. The game is open-ended: the goal is to keep expanding profit by choosing crops, using tools efficiently, and taking advantage of weather mutations.
+
+Tech stack:
+
+- **C++17**
+- **SFML 3.x** for graphics, windowing, input, and audio
+- **CMake** for builds
+- **nlohmann/json** for save data
+- **GoogleTest** for automated software tests
+
+---
+
+## 🕹️ How to Play
+
+### Objective
+
+Earn as many **sheckles** as possible by running a crop loop:
+
+1. Buy seeds from the shop.
+2. Plant seeds in empty garden cells.
+3. Let crops grow over time.
+4. Use tools to speed up growth when useful.
+5. Harvest fully grown crops into the harvest basket.
+6. Sell harvested crops from the shop's Sell tab.
+7. Reinvest the sheckles into better seeds or tools.
+
+The game has no fixed final boss or timer. It is an open-ended farming score loop where the practical "end" is the player's chosen stopping point, usually after reaching a target sheckle balance or filling the garden with high-value crops.
+
+### Controls
+
+| Action | Input |
+|---|---|
+| Start game | Click **Start** on the title screen |
+| Open credits | Click **Credits** on the title screen |
+| Return from credits | Press **Esc** |
+| Quit from title screen | Press **Q** or close the window |
+| Select seed or tool | Click an item in the inventory bar |
+| Plant selected seed | Click an empty garden cell |
+| Check growing crop | Click a growing crop |
+| Harvest crop | Click a fully grown crop |
+| Use selected tool | Select a tool, then click a planted crop |
+| Open shop | Click the shop button beside the garden |
+| Buy seeds/tools | Open shop, choose **Seeds** or **Tools**, then click **BUY** |
+| Sell harvested crops | Open shop, choose **Sell**, then click **SELL** or **SELL ALL** |
+
+### Rules
+
+- The garden is a 5 columns x 4 rows board. Each cell can hold at most one plant.
+- Seeds are consumed when planted. If the selected seed quantity reaches zero, it is deselected.
+- Crops advance by growth ticks. Fully grown crops can be harvested.
+- Some crops regrow after harvest. Regrowing crops reset to their configured regrow stage instead of being removed.
+- Harvested crops go into the harvest basket first. They only become sheckles after being sold.
+- The shop sells seeds and tools. Purchases fail if the player does not have enough sheckles or the inventory is full.
+- The **Watering Can** advances a crop by 5 growth ticks and loses durability after a valid use.
+- **Fertilizer** advances a crop by 20 growth ticks and loses durability after a valid use.
+- Broken tools are removed from inventory. If another copy exists, the next tool resets to full durability.
+- Weather changes over time and can speed crop growth.
+- Weather can add crop mutations. Mutations increase harvest sale value:
+  - Wet from Rain: x2
+  - Frozen from Frost: x5
+  - Shocked from Thunder Storm: x100
+  - Celestial from Meteor Shower: x150
+- Random events can affect the garden. The current event implementation can remove planted crops.
+- The game saves player sheckles, inventory, garden plants, crop mutations, tick count, initialization state, save timestamp, and the harvest basket.
+- Offline progress is applied after loading a save by comparing the save timestamp to the current time and fast-forwarding growth.
+
+---
+
+## 📌 Software Requirements
+
+### Functional Requirements
+
+- Show a title screen with start, credits, and exit behavior.
+- Render a top-down garden board with visible crop growth stages.
+- Allow the player to buy seed and tool items from a shop.
+- Track inventory item quantities and enforce inventory capacity.
+- Allow planting only when the selected seed exists and the target cell is empty.
+- Grow plants over time using the tick system.
+- Allow harvesting only when a crop is fully grown.
+- Store harvested crops in a basket before sale.
+- Sell one crop group or all basket items for sheckles.
+- Apply weather effects and weather-triggered mutations to plants.
+- Support tools with polymorphic behavior and durability.
+- Trigger random garden events through the random event system.
+- Save and load game state with JSON persistence.
+- Apply offline progress when loading an older save.
+- Play weather-appropriate background music and reject unsafe audio paths.
+
+### Non-Functional Requirements
+
+- Build with CMake on Windows and Linux.
+- Use SFML 3.x for graphics, input, windowing, and audio.
+- Keep asset paths relative to the project root or copied build assets.
+- Use OOP encapsulation for stateful systems such as `Game`, `Garden`, `Plant`, `Inventory`, and `Shop`.
+- Use inheritance and virtual dispatch for item/tool/event behavior.
+- Preserve ownership safety with `std::unique_ptr<Plant>` in `Cell` and polymorphic `Item` clones.
+- Keep save/load tolerant of missing or malformed optional data.
+- Keep core logic testable through GoogleTest without launching the SFML window.
+
+### OOP Talking Points
+
+- **Class and encapsulation:** `Game`, `Garden`, `Cell`, `Plant`, `Player`, `Inventory`, `Shop`, `WeatherSystem`, and `TickSystem` keep their own state private and expose focused methods.
+- **Inheritance point 1:** `Item` is the base class for `Seed`, `Tool`, and `HarvestedItem`.
+- **Inheritance point 2:** `Tool` is the base class for `WateringCan` and `FertilizerTool`.
+- **Inheritance point 3:** `RandomEvent` is the base class for `RaccoonEvent`.
+- **Runtime state changes:** planting adds a `Plant` to a `Cell`, harvesting clears or regrows the plant, inventory quantities change after buying/planting/selling, tools lose durability, weather adds mutations, and saves restore game state.
+
+---
+
 ## 📋 Requirements
 
 - [CMake](https://cmake.org/download/) >= 3.16
@@ -229,7 +340,7 @@ Run the game from the project root so asset paths resolve correctly.
     │   └── fonts/
     ├── docs/
     │   ├── class_diagram.puml
-    │   └── requirements.md
+    │   └── requirements.pdf
     ├── CMakeLists.txt
     └── README.md
 
@@ -238,17 +349,16 @@ Run the game from the project root so asset paths resolve correctly.
 ## 📖 Docs
 
 - [Class Diagram](docs/class_diagram.puml) — open with [PlantUML](https://www.plantuml.com/plantuml/)
-- [Requirements](docs/requirements.md)
+- [Scoring Criteria](docs/requirements.pdf)
 
 ---
 
 ## 🧭 Development Notes
 
 - `docs/class_diagram.puml` is the primary design reference for class relationships, inheritance, and associations.
-- TODO: `docs/class_diagram.puml` still says the garden is 20×20; runtime code currently uses a 5×4 board.
 - The in-game currency is called **sheckles**. Keep that spelling in code, UI text, and docs.
 - The runtime garden is currently 5 columns × 4 rows: `src/ui/DrawUtils.h` defines `BOARD_COLS = 5` and `BOARD_ROWS = 4`, and `Game` constructs `Garden` from those constants.
-- `Plant`, `Item`, `Tool`, and `RandomEvent` are abstract concepts. Do not add public constructors that allow direct instantiation.
+- `Plant` is the concrete catalogue-driven crop runtime type. `Item`, `Tool`, and `RandomEvent` are abstract concepts. Do not add public constructors that allow direct instantiation of abstract base classes.
 - Keep shared public APIs stable when touching `Garden`, `Plant`, `TickSystem`, or other systems that teammates build against.
 - Item behavior should stay polymorphic through `Item`, `Seed`, `HarvestedItem`, and `Tool`; inventory quantities should stay map-based for item name counts.
 - Member variables use trailing underscores, for example `name_` and `cells_`.

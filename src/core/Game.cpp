@@ -400,6 +400,13 @@ void Game::loadGame() {
                 int stage = plantEntry.value("stage", 0);
                 int ticksElapsed = plantEntry.value("ticksElapsed", 0);
 
+                if (x < 0 || y < 0 || x >= garden_.getWidth() || y >= garden_.getHeight()) {
+                    std::cerr << "Warning: Saved crop '" << cropName
+                              << "' has out-of-bounds coordinates ("
+                              << x << ", " << y << "), skipping" << std::endl;
+                    continue;
+                }
+
                 const ShopItemDef* def = findDefByCropName(catalogue, cropName);
                 if (!def) {
                     std::cerr << "Warning: Unknown crop type '" << cropName << "', skipping" << std::endl;

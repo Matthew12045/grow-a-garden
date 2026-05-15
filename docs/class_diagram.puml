@@ -8,11 +8,8 @@ class Game {
     - garden : Garden
     - weatherSystem : WeatherSystem
     - player : Player
-    - shop : Shop
-    - uiManager : UIManager
-    - audioManager : AudioManager
     - randEventMgr : RandomEventManager
-    - lastSaveTimestamp : long
+    - lastSaveTimestamp : int64
     + update() : void
     + autoSave() : void
     + saveGame() : void
@@ -49,24 +46,22 @@ class Cell {
     + isEmpty() : bool
     + setPlant(plant : Plant) : void
     + getPlant() : Plant
-    + clearCrop() : void
+    + clearPlant() : void
 }
 
-abstract class Plant {
-    # id : int
-    # name : String
-    # currentStage : int
-    # maxStages : int
-    # baseTicksPerStage : int
-    # currentTicksPerStage : int
-    # ticksElapsed : int
-    # buyPrice : float
-    # sellPrice : float
-    # mutations : List~Mutation~
-    # regrowsAfterHarvest : bool
-    # regrowStage : int
-    # consumedOnHarvest : bool
-    - baseTicksPerStage
+class Plant {
+    - id : int
+    - name : String
+    - currentStage : int
+    - maxStages : int
+    - baseTicksPerStage : size_t
+    - currentTicksPerStage : size_t
+    - ticksElapsed : size_t
+    - sellPrice : double
+    - mutations : List~Mutation~
+    - regrowsAfterHarvest : bool
+    - consumedOnHarvest : bool
+    - regrowStage : int
     + grow(ticks : int) : void
     + harvest() : HarvestedItem
     + isFullyGrown() : bool
@@ -74,23 +69,41 @@ abstract class Plant {
     + applyWeatherEffect(w : WeatherType) : void
     + addMutation(m : Mutation) : void
     + getMutations() : List~MutationType~
-    - calcFinalPrice() : float
+    + getStage() : int
+    + getName() : String
+    + getMaxStages() : int
+    + getTicksElapsed() : size_t
+    - calcPrice() : double
 }
 note right of Plant
-  applyWeatherEffect() → modifies ticksPerStage
-  (temporary, while weather is active)
-  calcFinalPrice() → folds all mutation
-  multipliers into final sell price
+  Plant is the concrete catalogue-driven
+  crop runtime type. PlantFactory builds it
+  from ShopItemDef seed definitions.
+  calcPrice() folds mutation multipliers
+  into final sell price.
 end note
 
-class SpecialPlant {
-    - requiredToolName : String
-    - HarvestBonus : float
-    + canHarvest(tool : Tool) : bool
-    + harvest(tool : Tool) : HarvestedItem
+struct ShopItemDef {
+    + name : String
+    + cropName : String
+    + buyPrice : float
+    + sellPrice : float
+    + growTicks : int
+    + maxStages : int
+    + regrowsAfterHarvest : bool
+    + regrowStage : int
+    + type : ShopItemType
+    + toolBoost : int
 }
 
-Plant <|-- SpecialPlant
+enum ShopItemType {
+    SEED
+    TOOL
+}
+
+class PlantFactory <<factory>> {
+    + makePlant(def : ShopItemDef) : Plant
+}
 
 enum MutationType {
     WET
@@ -161,9 +174,10 @@ abstract class Item {
     # name : String
     # description : String
     # basePrice : float
-    + getBasePrice() : float
+    + getPrice() : float
     + getName() : String
-    + getDescription : String
+    + getDescr() : String
+    + clone() : Item
 }
 
 class Seed {
@@ -193,10 +207,11 @@ class Shop {
 
 class RandomEventManager {
     - events : List~RandomEvent~
+    - elapsedTime : float
     - triggerProbability : float
-    - cooldownTicks : int
-    - lastTriggeredTick : int
-    + checkAndTrigger(tick : int, garden : Garden, player : Player) : void
+    + registerEvent(event : RandomEvent) : void
+    + setTriggerProbability(triggerProbability : float) : void
+    + update(dt : float, garden : Garden, player : Player) : void
 }
 
 abstract class RandomEvent {
@@ -240,9 +255,6 @@ Game *-- TickSystem
 Game *-- Garden
 Game *-- WeatherSystem
 Game *-- Player
-Game *-- Shop
-Game *-- UIManager
-Game *-- AudioManager
 Game *-- RandomEventManager
 
 Garden *-- Cell : 1..*
@@ -268,6 +280,9 @@ HarvestedItem --> MutationType : has
 
 Plant ..> HarvestedItem : produces
 Plant ..> WeatherType : affected by
+PlantFactory ..> ShopItemDef : reads
+PlantFactory ..> Plant : creates
+ShopItemDef --> ShopItemType : has
 
 RandomEventManager *-- RandomEvent
 RandomEvent <|-- RaccoonEvent

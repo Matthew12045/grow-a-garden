@@ -826,6 +826,48 @@ TEST(Integration_Game, LoadGameAcceptsGardenPlantWithoutMutations) {
     EXPECT_TRUE(carrot->getMutations().empty());
 }
 
+TEST(Integration_Game, LoadGameSkipsGardenPlantsOutsideBoard) {
+    SaveFileGuard saveGuard;
+    nlohmann::json save = {
+        {"player", {{"sheckles", 0}}},
+        {"inventory", {{"items", nlohmann::json::array()}}},
+        {"garden", {{"plants", nlohmann::json::array({
+            {
+                {"x", 5},
+                {"y", 0},
+                {"name", "Carrot"},
+                {"stage", 0},
+                {"maxStages", 5},
+                {"ticksElapsed", 0}
+            },
+            {
+                {"x", 1},
+                {"y", 1},
+                {"name", "Blueberry"},
+                {"stage", 0},
+                {"maxStages", 4},
+                {"ticksElapsed", 0}
+            }
+        })}}},
+        {"game", {{"tick", 0}, {"initialized", true}, {"saveTimestamp", currentEpochSecondsForTest() + 60}}},
+        {"harvestBasket", nlohmann::json::array()}
+    };
+
+    std::ofstream out("save.json");
+    out << save.dump(2);
+    out.close();
+
+    Game game;
+    Garden& garden = game.getGarden();
+
+    EXPECT_TRUE(game.hasLoadedSave());
+    EXPECT_EQ(countOccupied(garden), 1);
+    EXPECT_EQ(garden.getCell(0, 1).getPlant(), nullptr);
+    Plant* savedPlant = garden.getCell(1, 1).getPlant();
+    ASSERT_NE(savedPlant, nullptr);
+    EXPECT_EQ(savedPlant->getName(), "Blueberry");
+}
+
 TEST(Integration_Game, LoadGameKeepsPlantWhenGardenPlantMutationsAreMalformed) {
     SaveFileGuard saveGuard;
     nlohmann::json save = {

@@ -49,10 +49,18 @@ void Player::useTool(Cell& cell) {
 }
 
 void Player::addSheckles(float amount) {
+    if (amount < 0.0f) {
+        return;
+    }
+
     sheckles_ += amount;
 }
 
 bool Player::deductSheckles(float amount) {
+    if (amount < 0.0f) {
+        return false;
+    }
+
     if (sheckles_ >= amount) {
         sheckles_ -= amount;
         return true;

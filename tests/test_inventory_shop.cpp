@@ -374,6 +374,22 @@ TEST(PlayerShopTest, PlayerBuyAddsItemAndDeductsSheckles) {
     EXPECT_EQ(player.getInventory().getQuantity("Carrot Seed"), 1);
 }
 
+TEST(PlayerEconomyTest, AddShecklesRejectsNegativeAmount) {
+    Player player;
+    player.addSheckles(25.0f);
+    player.addSheckles(-10.0f);
+
+    EXPECT_FLOAT_EQ(player.getSheckles(), 25.0f);
+}
+
+TEST(PlayerEconomyTest, DeductShecklesRejectsNegativeAmount) {
+    Player player;
+    player.addSheckles(25.0f);
+
+    EXPECT_FALSE(player.deductSheckles(-10.0f));
+    EXPECT_FLOAT_EQ(player.getSheckles(), 25.0f);
+}
+
 TEST(PlayerShopTest, PlayerSellRemovesOwnedItemAndAddsSheckles) {
     Shop shop;
     auto seed = makeSeed("Carrot Seed", 10.0);
