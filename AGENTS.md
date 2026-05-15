@@ -66,9 +66,9 @@ grow-a-garden/
 │   ├── audio/         # bgm/, sfx/
 │   └── fonts/
 ├── docs/
-│   ├── class_diagram.puml
-│   └── requirements.md
+│   └── class_diagram.puml
 ├── .agents/skills/caveman/   # Caveman communication skill
+├── requirements.pdf           # Requirements source for implementation
 ├── CMakeLists.txt
 └── AGENTS.md
 ```
@@ -223,6 +223,7 @@ When generating code that touches shared systems (Garden, Plant, TickSystem), be
 ## Docs
 
 - Class diagram: `docs/class_diagram.puml` (open with PlantUML)
+- Requirements: `requirements.pdf`
 - GitHub repo: https://github.com/Matthew12045/grow-a-garden
 
 ## VS Code Debugger MCP
