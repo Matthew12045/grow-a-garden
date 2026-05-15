@@ -1,0 +1,16 @@
+{
+  "player": {
+    "sheckles": 0
+  },
+  "inventory": {
+    "items": []
+  },
+  "garden": {
+    "plants": []
+  },
+  "game": {
+    "tick": 0,
+    "initialized": false
+  },
+  "harvestBasket": []
+}

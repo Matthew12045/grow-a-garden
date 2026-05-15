@@ -1,0 +1,26 @@
+#pragma once
+
+#include <cstddef>
+#include <memory>
+#include <string>
+
+class Item {
+protected:
+    std::size_t id_;
+    std::string name_;
+    std::string description_;
+    double basePrice_;
+
+protected:
+    Item(std::size_t id, std::string name, std::string description, double basePrice);
+
+
+public:
+    virtual ~Item() = default;
+    virtual std::unique_ptr<Item> clone() const = 0;
+    virtual double getPrice() const = 0;
+
+    const std::string& getName() const;
+    const std::string& getDescr() const;
+    std::size_t id() const;
+};

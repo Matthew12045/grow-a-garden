@@ -1,0 +1,501 @@
+{
+  "game": {
+    "initialized": true,
+    "saveTimestamp": 1778494533,
+    "tick": 893
+  },
+  "garden": {
+    "plants": [
+      {
+        "maxStages": 5,
+        "mutations": [
+          2,
+          0
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          0
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 1,
+        "y": 0
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          2,
+          0,
+          3
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 2,
+        "y": 0
+      },
+      {
+        "maxStages": 4,
+        "mutations": [
+          0,
+          3
+        ],
+        "name": "Blueberry",
+        "stage": 4,
+        "ticksElapsed": 20,
+        "x": 3,
+        "y": 0
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 1,
+        "ticksElapsed": 7,
+        "x": 4,
+        "y": 0
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          2,
+          3
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 0,
+        "y": 1
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 1,
+        "y": 1
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          0
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 2,
+        "y": 1
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          2,
+          0
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 3,
+        "y": 1
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 1,
+        "ticksElapsed": 9,
+        "x": 4,
+        "y": 1
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          2,
+          0
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 0,
+        "y": 2
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          2,
+          0
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 1,
+        "y": 2
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 2,
+        "ticksElapsed": 14,
+        "x": 2,
+        "y": 2
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          2,
+          0,
+          3
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 3,
+        "y": 2
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 1,
+        "ticksElapsed": 10,
+        "x": 4,
+        "y": 2
+      },
+      {
+        "maxStages": 5,
+        "mutations": [
+          0
+        ],
+        "name": "Carrot",
+        "stage": 5,
+        "ticksElapsed": 30,
+        "x": 0,
+        "y": 3
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 3,
+        "ticksElapsed": 18,
+        "x": 1,
+        "y": 3
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 2,
+        "ticksElapsed": 16,
+        "x": 2,
+        "y": 3
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 2,
+        "ticksElapsed": 13,
+        "x": 3,
+        "y": 3
+      },
+      {
+        "maxStages": 5,
+        "mutations": [],
+        "name": "Carrot",
+        "stage": 1,
+        "ticksElapsed": 11,
+        "x": 4,
+        "y": 3
+      }
+    ]
+  },
+  "harvestBasket": [
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        1
+      ],
+      "price": 3000.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2
+      ],
+      "price": 150.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2,
+        1
+      ],
+      "price": 3150.0
+    },
+    {
+      "cropName": "Blueberry",
+      "mutations": [
+        0
+      ],
+      "price": 90.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2,
+        1,
+        3,
+        0
+      ],
+      "price": 7710.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1,
+        3
+      ],
+      "price": 7710.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        1,
+        2,
+        0
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2,
+        0
+      ],
+      "price": 210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        1,
+        0
+      ],
+      "price": 3060.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2,
+        1,
+        3,
+        0
+      ],
+      "price": 7710.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2,
+        1,
+        3,
+        0
+      ],
+      "price": 7710.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2
+      ],
+      "price": 210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0,
+        2
+      ],
+      "price": 210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2,
+        0,
+        1
+      ],
+      "price": 3210.0
+    },
+    {
+      "cropName": "Blueberry",
+      "mutations": [
+        0
+      ],
+      "price": 90.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2
+      ],
+      "price": 150.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0
+      ],
+      "price": 60.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2
+      ],
+      "price": 150.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2,
+        0
+      ],
+      "price": 210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0
+      ],
+      "price": 60.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0
+      ],
+      "price": 60.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        2,
+        0
+      ],
+      "price": 210.0
+    },
+    {
+      "cropName": "Carrot",
+      "mutations": [
+        0
+      ],
+      "price": 60.0
+    }
+  ],
+  "inventory": {
+    "items": [
+      {
+        "name": "Carrot Seed",
+        "quantity": 3
+      }
+    ]
+  },
+  "player": {
+    "sheckles": 0.0
+  }
+}

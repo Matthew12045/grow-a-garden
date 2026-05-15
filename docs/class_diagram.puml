@@ -1,0 +1,293 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+title Grow A Garden - UML Class Diagram
+
+class Game {
+    - tickSystem : TickSystem
+    - garden : Garden
+    - weatherSystem : WeatherSystem
+    - player : Player
+    - randEventMgr : RandomEventManager
+    - lastSaveTimestamp : int64
+    + update() : void
+    + autoSave() : void
+    + saveGame() : void
+    + loadGame() : void
+    + processOfflineProgress() : void
+}
+note left of Game
+  processOfflineProgress() compares
+  current time to lastSaveTimestamp
+  and bulk fast-forwards ticks on load.
+end note
+
+class TickSystem {
+    - currentTick : int
+    - tickRate : float
+    + update(deltaTime : float) : void
+    + getTick() : int
+    + fastForward(ticks : int) : void
+}
+
+class Garden {
+    - width : int
+    - height : int
+    - cells : Cell[][]
+    + getWidth() : int
+    + getHeight() : int
+    + getCell(x : int, y : int) : Cell
+    + plantCrop(x : int, y : int, plant : Plant) : bool
+}
+note right of Garden : constructor-sized; runtime board = 5 columns x 4 rows
+
+class Cell {
+    - plant : Plant
+    + isEmpty() : bool
+    + setPlant(plant : Plant) : void
+    + getPlant() : Plant
+    + clearPlant() : void
+}
+
+class Plant {
+    - id : int
+    - name : String
+    - currentStage : int
+    - maxStages : int
+    - baseTicksPerStage : size_t
+    - currentTicksPerStage : size_t
+    - ticksElapsed : size_t
+    - sellPrice : double
+    - mutations : List~Mutation~
+    - regrowsAfterHarvest : bool
+    - consumedOnHarvest : bool
+    - regrowStage : int
+    + grow(ticks : int) : void
+    + harvest() : HarvestedItem
+    + isFullyGrown() : bool
+    + getTimeToGrowth() : int
+    + applyWeatherEffect(w : WeatherType) : void
+    + addMutation(m : Mutation) : void
+    + getMutations() : List~MutationType~
+    + getStage() : int
+    + getName() : String
+    + getMaxStages() : int
+    + getTicksElapsed() : size_t
+    - calcPrice() : double
+}
+note right of Plant
+  Plant is the concrete catalogue-driven
+  crop runtime type. PlantFactory builds it
+  from ShopItemDef seed definitions.
+  calcPrice() folds mutation multipliers
+  into final sell price.
+end note
+
+struct ShopItemDef {
+    + name : String
+    + cropName : String
+    + buyPrice : float
+    + sellPrice : float
+    + growTicks : int
+    + maxStages : int
+    + regrowsAfterHarvest : bool
+    + regrowStage : int
+    + type : ShopItemType
+    + toolBoost : int
+}
+
+enum ShopItemType {
+    SEED
+    TOOL
+}
+
+class PlantFactory <<factory>> {
+    + makePlant(def : ShopItemDef) : Plant
+}
+
+enum MutationType {
+    WET
+    SHOCKED
+    FROZEN
+    CELESTIAL
+}
+
+class Mutation {
+    - type : MutationType
+    - valueMultiplier : float
+    - triggerWeather : WeatherType
+    + apply(plant : Plant) : void
+    + getMultiplier() : float
+    + getTrigger() : WeatherType
+    + getType() : MutationType
+}
+
+Mutation --> MutationType : has
+note right of Mutation
+  Wet (Rain)        ×2
+  Shocked (Thunder) ×100
+  Frozen (Frost)    ×5
+  Celestial (Meteor)×150
+end note
+
+class WeatherSystem {
+    - currentWeather : WeatherType
+    - ticksUntilChange : int
+    + update() : void
+    + getCurrentWeather() : WeatherType
+    + applyEffectsToGrid(garden : Garden) : void
+    + tryTriggerMutation(plant : Plant) : void
+}
+
+enum WeatherType {
+    SUMMER
+    RAIN
+    FROST
+    THUNDER_STORM
+    METEOR_SHOWER
+}
+
+class Player {
+    - sheckles : float
+    - inventory : Inventory
+    - equippedTool : Tool
+    + buy(item : Item, shop : Shop) : bool
+    + sell(item : Item, shop : Shop) : bool
+    + equipTool(tool : Tool) : void
+    + useTool(cell : Cell) : void
+    + addSheckles(amount : float) : void
+    + deductSheckles(amount : float) : bool
+}
+
+class Inventory {
+    - items : Map~String, Integer~
+    - maxSlots : int
+    + addItem(item : Item, qty : int) : bool
+    + removeItem(item : Item, qty : int) : bool
+    + getQuantity(itemName : String) : int
+    + isFull() : bool
+    + getItems() : List~Item~
+}
+
+abstract class Item {
+    # id : int
+    # name : String
+    # description : String
+    # basePrice : float
+    + getPrice() : float
+    + getName() : String
+    + getDescr() : String
+    + clone() : Item
+}
+
+class Seed {
+    - cropType : String
+    + getCropType() : String
+}
+
+class HarvestedItem {
+    - mutations : List~MutationType~
+    - finalSellPrice : float
+    + getPrice() : float
+    + getMutations() : String
+}
+
+
+abstract class Tool {
+    # durability : int
+    + use(cell : Cell, player : Player) : void
+}
+
+class Shop {
+    - availableInventory : List~Item~
+    + processPurchase(item : Item, player : Player) : bool
+    + processSale(item : Item, player : Player) : bool
+    + getAvailableItems() : List~Item~
+}
+
+class RandomEventManager {
+    - events : List~RandomEvent~
+    - elapsedTime : float
+    - triggerProbability : float
+    + registerEvent(event : RandomEvent) : void
+    + setTriggerProbability(triggerProbability : float) : void
+    + update(dt : float, garden : Garden, player : Player) : void
+}
+
+abstract class RandomEvent {
+    + {abstract} trigger(garden : Garden, player : Player) : void
+}
+
+class RaccoonEvent {
+    - stolenAmount : int
+    + trigger(garden : Garden, player : Player) : void
+}
+
+class UIManager {
+    - language : Language
+    + showInventory(inv : Inventory) : void
+    + showShop(shop : Shop) : void
+    + showWeather(weather : WeatherType) : void
+    + showCropTimer(plant : Plant) : void
+    + showMutations(plant : Plant) : void
+    + showEventLog() : void
+    + setLanguage(lang : Language) : void
+}
+
+enum Language {
+    THAI
+    ENGLISH
+    CHINESE
+}
+
+class AudioManager {
+    - currentWeather : WeatherType
+    + updateBGM(currentWeather : WeatherType) : void
+    + playSound(relativePath : string) : bool
+    + stop() : void
+}
+
+' ==========================================
+' Relationships
+' ==========================================
+
+Game *-- TickSystem
+Game *-- Garden
+Game *-- WeatherSystem
+Game *-- Player
+Game *-- RandomEventManager
+
+Garden *-- Cell : 1..*
+Cell o-- Plant : holds (0..1)
+
+Plant *-- Mutation : has 0..*
+Mutation --> WeatherType : triggered by
+
+WeatherSystem --> WeatherType
+WeatherSystem ..> Mutation : creates
+
+Player *-- Inventory : 1..1
+Player o-- Tool : equippedTool
+
+Inventory o-- Item : stores
+Shop --> Item : manages
+
+Item <|-- Seed
+Item <|-- HarvestedItem
+Item <|-- Tool
+
+HarvestedItem --> MutationType : has
+
+Plant ..> HarvestedItem : produces
+Plant ..> WeatherType : affected by
+PlantFactory ..> ShopItemDef : reads
+PlantFactory ..> Plant : creates
+ShopItemDef --> ShopItemType : has
+
+RandomEventManager *-- RandomEvent
+RandomEvent <|-- RaccoonEvent
+
+UIManager --> Language
+AudioManager ..> WeatherType : synchronizes with
+
+@enduml
